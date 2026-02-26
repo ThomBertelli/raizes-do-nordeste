@@ -10,7 +10,7 @@ public enum FormaPagamento {
     VALE_REFEICAO(6, "Vale Refeição");
 
     private int cod;
-    private String descricao;
+    private final String descricao;
 
     private FormaPagamento(int cod, String descricao) {
         this.cod = cod;
