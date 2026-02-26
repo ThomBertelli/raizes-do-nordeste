@@ -1,6 +1,9 @@
 package com.raizesdonordeste.api.domain.enums;
 
 
+import lombok.Getter;
+import lombok.Setter;
+
 public enum PerfilUsuario {
     ADMIN(1, "ROLE_ADMIN"),
     CLIENTE(2, "ROLE_CLIENTE"),
@@ -17,5 +20,6 @@ public enum PerfilUsuario {
         this.cod = cod;
         this.descricao = descricao;
     }
+
 
 }
