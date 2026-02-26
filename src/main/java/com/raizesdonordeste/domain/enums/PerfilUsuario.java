@@ -1,4 +1,4 @@
-package com.raizesdonordeste.api.domain.enums;
+package com.raizesdonordeste.domain.enums;
 
 
 import lombok.Getter;

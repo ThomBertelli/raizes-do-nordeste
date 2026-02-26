@@ -1,4 +1,4 @@
-package com.raizesdonordeste.api;
+package com.raizesdonordeste;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

@@ -1,13 +1,13 @@
-package com.raizesdonordeste.api;
+package com.raizesdonordeste;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class ApiApplication {
+public class RaizesDoNordeste {
 
 	public static void main(String[] args) {
-		SpringApplication.run(ApiApplication.class, args);
+		SpringApplication.run(RaizesDoNordeste.class, args);
 
 		System.out.println("API Raízes do Nordeste is running...");
 	}
