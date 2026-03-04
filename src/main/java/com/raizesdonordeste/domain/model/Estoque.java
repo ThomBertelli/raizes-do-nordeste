@@ -37,6 +37,10 @@ public class Estoque {
     @Min(value = 0, message = "Quantidade não pode ser negativa")
     private Integer quantidade;
 
+    @Version
+    @Column(nullable = false)
+    private Long versao;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime dataCriacao;
