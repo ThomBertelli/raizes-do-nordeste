@@ -27,7 +27,6 @@ public class Fidelidade {
     private Usuario usuario;
 
     @Column(name = "pontos_atuais", nullable = false)
-    @NotNull(message = "Pontos atuais é obrigatório")
     @Min(value = 0, message = "Pontos atuais não pode ser negativo")
     private int pontosAtuais = 0;
 
