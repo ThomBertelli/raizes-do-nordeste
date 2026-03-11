@@ -7,6 +7,7 @@ import com.raizesdonordeste.config.JwtTokenProvider;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.model.Usuario;
 import com.raizesdonordeste.domain.repository.UsuarioRepository;
+import com.raizesdonordeste.exception.EmailJaCadastradoException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -64,7 +65,7 @@ public class AuthService {
     public LoginResponse cadastrar(CadastroRequest cadastroRequest) {
 
         if (usuarioRepository.existsByEmail(cadastroRequest.getEmail())) {
-            throw new IllegalArgumentException("Email já cadastrado");
+            throw new EmailJaCadastradoException("Email já cadastrado");
         }
 
         Usuario usuario = Usuario.builder()
