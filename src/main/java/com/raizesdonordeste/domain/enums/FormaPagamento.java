@@ -1,19 +1,20 @@
 package com.raizesdonordeste.domain.enums;
 
 public enum FormaPagamento {
+    DINHEIRO("Dinheiro"),
+    CARTAO_CREDITO("Cartão de Crédito"),
+    CARTAO_DEBITO("Cartão de Débito"),
+    PIX("Pix"),
+    VALE_ALIMENTACAO("Vale Alimentação"),
+    VALE_REFEICAO("Vale Refeição");
 
-    DINHEIRO(1, "Dinheiro"),
-    CARTAO_CREDITO(2, "Cartão de Crédito"),
-    CARTAO_DEBITO(3, "Cartão de Débito"),
-    PIX(4, "Pix"),
-    VALE_ALIMENTACAO(5, "Vale Alimentação"),
-    VALE_REFEICAO(6, "Vale Refeição");
-
-    private int cod;
     private final String descricao;
 
-    private FormaPagamento(int cod, String descricao) {
-        this.cod = cod;
+    FormaPagamento(String descricao) {
         this.descricao = descricao;
+    }
+
+    public String getDescricao() {
+        return descricao;
     }
 }

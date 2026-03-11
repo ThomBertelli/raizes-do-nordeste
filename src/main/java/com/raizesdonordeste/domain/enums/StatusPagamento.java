@@ -1,17 +1,18 @@
 package com.raizesdonordeste.domain.enums;
 
 public enum StatusPagamento {
+    PENDENTE("Pendente"),
+    APROVADO("Aprovado"),
+    RECUSADO("Recusado"),
+    CANCELADO("Cancelado");
 
-    PENDENTE(1, "Pendente"),
-    APROVADO(2, "Aprovado"),
-    RECUSADO(3, "Recusado"),
-    CANCELADO(4, "Cancelado");
-
-    private int cod;
     private final String descricao;
 
-    private StatusPagamento(int cod, String descricao) {
-        this.cod = cod;
+    StatusPagamento(String descricao) {
         this.descricao = descricao;
+    }
+
+    public String getDescricao() {
+        return descricao;
     }
 }

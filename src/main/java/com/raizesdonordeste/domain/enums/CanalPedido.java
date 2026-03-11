@@ -1,18 +1,19 @@
 package com.raizesdonordeste.domain.enums;
 
 public enum CanalPedido {
+    APP("Aplicativo"),
+    SITE("Site"),
+    TOTEM("Totem de Autoatendimento"),
+    PICKUP("Retirada no Local"),
+    BALCAO("Pedido no Balcão da Loja");
 
-    APP(1, "Aplicativo"),
-    SITE(2, "Site"),
-    TOTEM(3, "Totem de Autoatendimento"),
-    PICKUP(4, "Retirada no Local"),
-    BALCAO(5, "Pedido no Balcão da Loja");
-
-    private final int cod;
     private final String descricao;
 
-    private CanalPedido(int cod, String descricao) {
-        this.cod = cod;
+    CanalPedido(String descricao) {
         this.descricao = descricao;
+    }
+
+    public String getDescricao() {
+        return descricao;
     }
 }

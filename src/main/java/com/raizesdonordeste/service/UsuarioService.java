@@ -21,6 +21,18 @@ public class UsuarioService {
 
     @Transactional
     public UsuarioRespostaDTO criar(UsuarioCriacaoDTO dto) {
+        // ===== DEBUG: INÍCIO =====
+        System.out.println("========================================");
+        System.out.println("DEBUG - CRIAR USUÁRIO");
+        System.out.println("1. DTO Recebido:");
+        System.out.println("   - Nome: " + dto.getNome());
+        System.out.println("   - Email: " + dto.getEmail());
+        System.out.println("   - Perfil (DTO): " + dto.getPerfil());
+        System.out.println("   - Perfil name(): " + (dto.getPerfil() != null ? dto.getPerfil().name() : "NULL"));
+        System.out.println("   - Consentimento: " + dto.isConsentimentoProgramaFidelidade());
+        System.out.println("========================================");
+        // ===== DEBUG: FIM =====
+        
         if (usuarioRepository.existsByEmail(dto.getEmail())) {
             throw new IllegalArgumentException("Email já cadastrado");
         }
@@ -34,7 +46,27 @@ public class UsuarioService {
                 .consentimentoProgramaFidelidade(dto.isConsentimentoProgramaFidelidade())
                 .build();
 
+        // ===== DEBUG: ANTES DE SALVAR =====
+        System.out.println("2. Usuario ANTES de salvar:");
+        System.out.println("   - Nome: " + usuario.getNome());
+        System.out.println("   - Email: " + usuario.getEmail());
+        System.out.println("   - Perfil: " + usuario.getPerfil());
+        System.out.println("   - Perfil name(): " + (usuario.getPerfil() != null ? usuario.getPerfil().name() : "NULL"));
+        System.out.println("========================================");
+        // ===== DEBUG: FIM =====
+
         Usuario salvo = usuarioRepository.save(usuario);
+        
+        // ===== DEBUG: DEPOIS DE SALVAR =====
+        System.out.println("3. Usuario DEPOIS de salvar:");
+        System.out.println("   - ID: " + salvo.getId());
+        System.out.println("   - Nome: " + salvo.getNome());
+        System.out.println("   - Email: " + salvo.getEmail());
+        System.out.println("   - Perfil: " + salvo.getPerfil());
+        System.out.println("   - Perfil name(): " + (salvo.getPerfil() != null ? salvo.getPerfil().name() : "NULL"));
+        System.out.println("========================================");
+        // ===== DEBUG: FIM =====
+        
         return converterParaDTO(salvo);
     }
 
@@ -150,4 +182,3 @@ public class UsuarioService {
                 .build();
     }
 }
-
