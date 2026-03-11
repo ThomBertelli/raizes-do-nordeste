@@ -1,10 +1,12 @@
 package com.raizesdonordeste.api.controller;
 
+import com.raizesdonordeste.api.dto.auth.CadastroRequest;
 import com.raizesdonordeste.api.dto.auth.LoginRequest;
 import com.raizesdonordeste.api.dto.auth.LoginResponse;
 import com.raizesdonordeste.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,5 +25,10 @@ public class AuthController {
         LoginResponse response = authService.autenticar(loginRequest);
         return ResponseEntity.ok(response);
     }
-}
 
+    @PostMapping("/cadastro")
+    public ResponseEntity<LoginResponse> cadastro(@Valid @RequestBody CadastroRequest cadastroRequest) {
+        LoginResponse response = authService.cadastrar(cadastroRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+}
