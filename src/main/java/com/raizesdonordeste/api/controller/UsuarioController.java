@@ -1,5 +1,8 @@
 package com.raizesdonordeste.api.controller;
 
+import com.raizesdonordeste.api.dto.usuario.UsuarioAtualizacaoDTO;
+import com.raizesdonordeste.api.dto.usuario.UsuarioCriacaoDTO;
+import com.raizesdonordeste.api.dto.usuario.UsuarioRespostaDTO;
 import com.raizesdonordeste.service.UsuarioService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -58,9 +61,9 @@ public class UsuarioController {
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/{id}/inativar")
-    public ResponseEntity<Void> inativar(@PathVariable Long id) {
-        usuarioService.inativar(id);
+    @PatchMapping("/{id}/desativar")
+    public ResponseEntity<Void> desativar(@PathVariable Long id) {
+        usuarioService.desativar(id);
         return ResponseEntity.noContent().build();
     }
 }
