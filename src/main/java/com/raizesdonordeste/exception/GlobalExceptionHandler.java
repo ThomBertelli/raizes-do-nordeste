@@ -1,6 +1,8 @@
 package com.raizesdonordeste.exception;
 
 import com.raizesdonordeste.api.dto.ErrorResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -15,6 +17,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(EmailJaCadastradoException.class)
@@ -90,8 +93,23 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        String mensagem = resolveIntegrityMessage(ex);
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .status(HttpStatus.CONFLICT.value())
+                .erro("Conflito")
+                .mensagem(mensagem)
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+        log.error("Erro não tratado na API", ex);
+
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .erro("Erro interno")
@@ -99,6 +117,23 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .build();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+
+    private String resolveIntegrityMessage(DataIntegrityViolationException ex) {
+        String detalhe = ex.getMostSpecificCause() != null
+                ? ex.getMostSpecificCause().getMessage()
+                : ex.getMessage();
+
+        if (detalhe == null) {
+            return "Violação de integridade dos dados.";
+        }
+
+        String detalheLower = detalhe.toLowerCase();
+        if (detalheLower.contains("cnpj") && detalheLower.contains("lojas")) {
+            return "CNPJ já cadastrado para outra loja.";
+        }
+
+        return "Violação de integridade dos dados.";
     }
 }
 

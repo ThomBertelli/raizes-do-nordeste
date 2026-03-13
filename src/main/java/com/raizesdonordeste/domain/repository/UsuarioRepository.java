@@ -26,5 +26,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     Page<Usuario> findByConsentimentoProgramaFidelidadeTrue(Pageable pageable);
 
+    boolean existsByPerfil(PerfilUsuario perfil);
 
 }
