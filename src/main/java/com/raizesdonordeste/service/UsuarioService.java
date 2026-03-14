@@ -3,14 +3,20 @@ package com.raizesdonordeste.service;
 import com.raizesdonordeste.api.dto.usuario.UsuarioAtualizacaoDTO;
 import com.raizesdonordeste.api.dto.usuario.UsuarioCriacaoDTO;
 import com.raizesdonordeste.api.dto.usuario.UsuarioRespostaDTO;
+import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.model.Usuario;
 import com.raizesdonordeste.domain.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +27,8 @@ public class UsuarioService {
 
     @Transactional
     public UsuarioRespostaDTO criar(UsuarioCriacaoDTO dto) {
-        
+        validarPermissaoCriacao(dto.getPerfil());
+
         if (usuarioRepository.existsByEmail(dto.getEmail())) {
             throw new IllegalArgumentException("Email já cadastrado");
         }
@@ -150,5 +157,39 @@ public class UsuarioService {
                 .criadoEm(usuario.getCriadoEm())
                 .atualizadoEm(usuario.getAtualizadoEm())
                 .build();
+    }
+
+    private void validarPermissaoCriacao(PerfilUsuario perfilDesejado) {
+        PerfilUsuario perfilSolicitante = obterPerfilDoSolicitante();
+
+        boolean permitido = switch (perfilSolicitante) {
+            case ADMIN -> perfilDesejado != PerfilUsuario.CLIENTE;
+            case GERENTE -> perfilDesejado == PerfilUsuario.FUNCIONARIO;
+            case GERENCIA_MATRIZ -> perfilDesejado == PerfilUsuario.FUNCIONARIO
+                    || perfilDesejado == PerfilUsuario.GERENTE
+                    || perfilDesejado == PerfilUsuario.GERENCIA_MATRIZ;
+            default -> false;
+        };
+
+        if (!permitido) {
+            throw new AccessDeniedException("Perfil sem permissão para criar usuário com o perfil informado");
+        }
+    }
+
+    private PerfilUsuario obterPerfilDoSolicitante() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("Usuário não autenticado");
+        }
+
+        return authentication.getAuthorities().stream()
+                .map(authority -> authority.getAuthority())
+                .filter(Objects::nonNull)
+                .filter(authority -> authority.startsWith("ROLE_"))
+                .map(authority -> authority.substring(5))
+                .findFirst()
+                .map(PerfilUsuario::valueOf)
+                .orElseThrow(() -> new AccessDeniedException("Perfil do usuário autenticado não identificado"));
     }
 }

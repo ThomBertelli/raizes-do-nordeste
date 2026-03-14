@@ -16,7 +16,8 @@ public class ErrorResponse {
     
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime timestamp;
-    
-    private List<String> detalhes;
+
+    @Builder.Default
+    private List<String> detalhes = List.of();
 }
 
