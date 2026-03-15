@@ -109,6 +109,19 @@ class UsuarioServicePermissaoCriacaoTest {
         assertThat(resposta.getEmail()).isEqualTo(dto.getEmail());
     }
 
+    @Test
+    @DisplayName("ADMIN pode criar outro ADMIN")
+    void adminPodeCriarAdmin() {
+        autenticarComo(PerfilUsuario.ADMIN);
+
+        UsuarioCriacaoDTO dto = novoUsuarioDto(PerfilUsuario.ADMIN, "admin-cria-admin@mail.com");
+
+        UsuarioRespostaDTO resposta = usuarioService.criar(dto);
+
+        assertThat(resposta).isNotNull();
+        assertThat(resposta.getPerfil()).isEqualTo(PerfilUsuario.ADMIN);
+    }
+
     @ParameterizedTest
     @EnumSource(value = PerfilUsuario.class, mode = EnumSource.Mode.EXCLUDE, names = {"ADMIN"})
     @DisplayName("Somente ADMIN pode criar outro ADMIN")
@@ -151,6 +164,38 @@ class UsuarioServicePermissaoCriacaoTest {
                 PerfilUsuario.CLIENTE,
                 true
         );
+
+        assertThatThrownBy(() -> usuarioService.criar(dto))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("permiss");
+
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @ParameterizedTest
+    @EnumSource(PerfilUsuario.class)
+    @DisplayName("FUNCIONARIO nao pode criar nenhum usuario (incluindo auto criacao)")
+    void funcionarioNaoPodeCriarNenhumUsuario(PerfilUsuario perfilDesejado) {
+        autenticarComo(PerfilUsuario.FUNCIONARIO);
+
+        UsuarioCriacaoDTO dto = novoUsuarioDto(
+                perfilDesejado,
+                "funcionario-cria-" + perfilDesejado.name().toLowerCase() + "@mail.com"
+        );
+
+        assertThatThrownBy(() -> usuarioService.criar(dto))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("permiss");
+
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("GERENTE nao pode criar GERENCIA_MATRIZ")
+    void gerenteNaoPodeCriarGerenciaMatriz() {
+        autenticarComo(PerfilUsuario.GERENTE);
+
+        UsuarioCriacaoDTO dto = novoUsuarioDto(PerfilUsuario.GERENCIA_MATRIZ, "gerente-cria-gerencia@mail.com");
 
         assertThatThrownBy(() -> usuarioService.criar(dto))
                 .isInstanceOf(AccessDeniedException.class)
