@@ -33,13 +33,15 @@ public class UsuarioService {
             throw new IllegalArgumentException("Email já cadastrado");
         }
 
+        boolean consentimentoFidelidade = resolverConsentimentoFidelidadeCriacao(dto);
+
         Usuario usuario = Usuario.builder()
                 .nome(dto.getNome())
                 .email(dto.getEmail())
                 .senha(passwordEncoder.encode(dto.getSenha()))
                 .perfil(dto.getPerfil())
                 .ativo(true)
-                .consentimentoProgramaFidelidade(dto.isConsentimentoProgramaFidelidade())
+                .consentimentoProgramaFidelidade(consentimentoFidelidade)
                 .build();
 
         Usuario salvo = usuarioRepository.save(usuario);
@@ -191,5 +193,17 @@ public class UsuarioService {
                 .findFirst()
                 .map(PerfilUsuario::valueOf)
                 .orElseThrow(() -> new AccessDeniedException("Perfil do usuário autenticado não identificado"));
+    }
+
+    private boolean resolverConsentimentoFidelidadeCriacao(UsuarioCriacaoDTO dto) {
+        if (dto.getPerfil() == PerfilUsuario.CLIENTE) {
+            if (dto.getConsentimentoProgramaFidelidade() == null) {
+                throw new IllegalArgumentException("Consentimento do programa de fidelidade é obrigatório para perfil CLIENTE");
+            }
+            return dto.getConsentimentoProgramaFidelidade();
+        }
+
+        // Não cliente não participa do programa de fidelidade no cadastro administrativo.
+        return false;
     }
 }

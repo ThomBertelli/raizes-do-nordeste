@@ -1,6 +1,7 @@
 package com.raizesdonordeste.api.dto.usuario;
 
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -31,6 +32,14 @@ public class UsuarioCriacaoDTO {
     @NotNull(message = "Perfil é obrigatório")
     private PerfilUsuario perfil;
 
-    private boolean consentimentoProgramaFidelidade = false;
+    private Boolean consentimentoProgramaFidelidade;
+
+    @AssertTrue(message = "Consentimento do programa de fidelidade é obrigatório para perfil CLIENTE")
+    public boolean isConsentimentoValidoParaPerfil() {
+        if (perfil == PerfilUsuario.CLIENTE) {
+            return consentimentoProgramaFidelidade != null;
+        }
+        return true;
+    }
 }
 
