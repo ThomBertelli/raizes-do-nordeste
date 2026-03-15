@@ -124,6 +124,41 @@ class UsuarioServicePermissaoCriacaoTest {
         verify(usuarioRepository, never()).save(any());
     }
 
+    @Test
+    @DisplayName("Usuario nao autenticado nao pode criar ADMIN")
+    void usuarioNaoAutenticadoNaoPodeCriarAdmin() {
+        SecurityContextHolder.clearContext();
+
+        UsuarioCriacaoDTO dto = novoUsuarioDto(PerfilUsuario.ADMIN, "novo-admin-sem-auth@mail.com");
+
+        assertThatThrownBy(() -> usuarioService.criar(dto))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("autenticado");
+
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @ParameterizedTest
+    @EnumSource(PerfilUsuario.class)
+    @DisplayName("Nenhum perfil pode criar usuario CLIENTE")
+    void nenhumPerfilPodeCriarCliente(PerfilUsuario perfilSolicitante) {
+        autenticarComo(perfilSolicitante);
+
+        UsuarioCriacaoDTO dto = new UsuarioCriacaoDTO(
+                "Cliente de Teste",
+                "novo-cliente@mail.com",
+                "Senha@123",
+                PerfilUsuario.CLIENTE,
+                true
+        );
+
+        assertThatThrownBy(() -> usuarioService.criar(dto))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("permiss");
+
+        verify(usuarioRepository, never()).save(any());
+    }
+
     private void autenticarComo(PerfilUsuario perfil) {
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken("tester", "senha", List.of(() -> "ROLE_" + perfil.name()));
