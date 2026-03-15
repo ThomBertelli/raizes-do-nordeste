@@ -87,9 +87,9 @@ class UsuarioServicePermissaoCriacaoTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = PerfilUsuario.class, names = {"FUNCIONARIO", "GERENTE"})
-    @DisplayName("GERENCIA_MATRIZ pode criar usuario FUNCIONARIO e GERENTE")
-    void gerenciaMatrizPodeCriarFuncionarioEGerente(PerfilUsuario perfilDesejado) {
+    @EnumSource(value = PerfilUsuario.class, names = {"FUNCIONARIO", "GERENTE", "GERENCIA_MATRIZ"})
+    @DisplayName("GERENCIA_MATRIZ pode criar usuario FUNCIONARIO, GERENTE e GERENCIA_MATRIZ")
+    void gerenciaMatrizPodeCriarPerfisAdministrativos(PerfilUsuario perfilDesejado) {
         autenticarComo(PerfilUsuario.GERENCIA_MATRIZ);
 
         UsuarioCriacaoDTO dto = novoUsuarioDto(
