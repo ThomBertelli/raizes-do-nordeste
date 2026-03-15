@@ -86,6 +86,24 @@ class UsuarioServicePermissaoCriacaoTest {
         assertThat(resposta.getEmail()).isEqualTo("gerente-cria-funcionario@mail.com");
     }
 
+    @ParameterizedTest
+    @EnumSource(value = PerfilUsuario.class, names = {"FUNCIONARIO", "GERENTE"})
+    @DisplayName("GERENCIA_MATRIZ pode criar usuario FUNCIONARIO e GERENTE")
+    void gerenciaMatrizPodeCriarFuncionarioEGerente(PerfilUsuario perfilDesejado) {
+        autenticarComo(PerfilUsuario.GERENCIA_MATRIZ);
+
+        UsuarioCriacaoDTO dto = novoUsuarioDto(
+                perfilDesejado,
+                "matriz-cria-" + perfilDesejado.name().toLowerCase() + "@mail.com"
+        );
+
+        UsuarioRespostaDTO resposta = usuarioService.criar(dto);
+
+        assertThat(resposta).isNotNull();
+        assertThat(resposta.getPerfil()).isEqualTo(perfilDesejado);
+        assertThat(resposta.getEmail()).isEqualTo(dto.getEmail());
+    }
+
     private void autenticarComo(PerfilUsuario perfil) {
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken("tester", "senha", List.of(() -> "ROLE_" + perfil.name()));
