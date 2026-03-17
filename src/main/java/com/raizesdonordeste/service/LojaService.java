@@ -3,12 +3,16 @@ package com.raizesdonordeste.service;
 import com.raizesdonordeste.api.dto.loja.LojaAtualizacaoDTO;
 import com.raizesdonordeste.api.dto.loja.LojaCriacaoDTO;
 import com.raizesdonordeste.api.dto.loja.LojaRespostaDTO;
+import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.repository.LojaRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +24,7 @@ public class LojaService {
 
     @Transactional
     public LojaRespostaDTO criar(LojaCriacaoDTO dto) {
+        validarAutorizacaoGerenciaMatriz();
         if (lojaRepository.existsByCnpj(dto.getCnpj())) {
             throw new IllegalArgumentException("CNPJ já cadastrado");
         }
@@ -36,6 +41,7 @@ public class LojaService {
 
     @Transactional
     public LojaRespostaDTO atualizar(Long id, LojaAtualizacaoDTO dto) {
+        validarAutorizacaoGerenciaMatriz();
         Loja loja = buscarEntidade(id);
 
         if (dto.getNome() != null) {
@@ -82,6 +88,7 @@ public class LojaService {
 
     @Transactional
     public void ativar(Long id) {
+        validarAutorizacaoGerenciaMatriz();
         Loja loja = buscarEntidade(id);
         loja.setAtiva(true);
         lojaRepository.save(loja);
@@ -89,6 +96,7 @@ public class LojaService {
 
     @Transactional
     public void desativar(Long id) {
+        validarAutorizacaoGerenciaMatriz();
         Loja loja = buscarEntidade(id);
         loja.setAtiva(false);
         lojaRepository.save(loja);
@@ -96,6 +104,7 @@ public class LojaService {
 
     @Transactional
     public void deletar(Long id) {
+        validarAutorizacaoGerenciaMatriz();
         if (!lojaRepository.existsById(id)) {
             throw new RecursoNaoEncontradoException("Loja não encontrada");
         }
@@ -118,5 +127,19 @@ public class LojaService {
                 .dataAtualizacao(loja.getDataAtualizacao())
                 .build();
     }
-}
 
+    private void validarAutorizacaoGerenciaMatriz() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("Usuário não autenticado");
+        }
+
+        boolean temPermissao = authentication.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_" + PerfilUsuario.GERENCIA_MATRIZ.name()));
+
+        if (!temPermissao) {
+            throw new AccessDeniedException("Usuário não tem permissão para realizar esta operação");
+        }
+    }
+}
