@@ -16,6 +16,7 @@ public class UsuarioRespostaDTO {
     private String nome;
     private String email;
     private PerfilUsuario perfil;
+    private Long lojaId;
     private boolean ativo;
     private boolean consentimentoProgramaFidelidade;
     private LocalDateTime criadoEm;

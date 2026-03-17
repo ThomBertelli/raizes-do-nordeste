@@ -32,6 +32,8 @@ public class UsuarioCriacaoDTO {
     @NotNull(message = "Perfil é obrigatório")
     private PerfilUsuario perfil;
 
+    private Long lojaId;
+
     private Boolean consentimentoProgramaFidelidade;
 
     @AssertTrue(message = "Consentimento do programa de fidelidade é obrigatório para perfil CLIENTE")

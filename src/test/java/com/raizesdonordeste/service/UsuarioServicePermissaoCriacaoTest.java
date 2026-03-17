@@ -3,7 +3,9 @@ package com.raizesdonordeste.service;
 import com.raizesdonordeste.api.dto.usuario.UsuarioCriacaoDTO;
 import com.raizesdonordeste.api.dto.usuario.UsuarioRespostaDTO;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
+import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.model.Usuario;
+import com.raizesdonordeste.domain.repository.LojaRepository;
 import com.raizesdonordeste.domain.repository.UsuarioRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,12 +31,16 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class UsuarioServicePermissaoCriacaoTest {
 
     @Mock
     private UsuarioRepository usuarioRepository;
+
+    @Mock
+    private LojaRepository lojaRepository;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -165,6 +171,7 @@ class UsuarioServicePermissaoCriacaoTest {
                 "novo-cliente@mail.com",
                 "Senha@123",
                 PerfilUsuario.CLIENTE,
+                null,
                 true
         );
 
@@ -243,8 +250,10 @@ class UsuarioServicePermissaoCriacaoTest {
     // -------------------------------------------------------------------------
 
     private void configurarCriacaoBemSucedida() {
+        Loja loja = Loja.builder().id(1L).nome("Loja Teste").cnpj("12.345.678/0001-90").endereco("Rua A").ativa(true).build();
         when(passwordEncoder.encode(anyString())).thenReturn("senha-criptografada");
         when(usuarioRepository.existsByEmail(anyString())).thenReturn(false);
+        lenient().when(lojaRepository.findById(1L)).thenReturn(java.util.Optional.of(loja));
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> {
             Usuario usuario = invocation.getArgument(0, Usuario.class);
             usuario.setId(sequence.getAndIncrement());
@@ -259,11 +268,13 @@ class UsuarioServicePermissaoCriacaoTest {
     }
 
     private UsuarioCriacaoDTO novoUsuarioDto(PerfilUsuario perfil, String email) {
+        Long lojaId = (perfil == PerfilUsuario.GERENTE || perfil == PerfilUsuario.FUNCIONARIO) ? 1L : null;
         return new UsuarioCriacaoDTO(
                 "Usuario de Teste",
                 email,
                 "Senha@123",
                 perfil,
+                lojaId,
                 null
         );
     }

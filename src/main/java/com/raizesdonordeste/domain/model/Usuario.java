@@ -45,6 +45,10 @@ public class Usuario {
     @NotNull(message = "Perfil é obrigatório")
     private PerfilUsuario perfil;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "loja_id")
+    private Loja loja;
+
     @Column(nullable = false)
     private boolean ativo = true;
 

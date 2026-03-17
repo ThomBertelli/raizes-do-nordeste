@@ -25,6 +25,8 @@ public class UsuarioAtualizacaoDTO {
 
     private PerfilUsuario perfil;
 
+    private Long lojaId;
+
     private Boolean ativo;
 
     private Boolean consentimentoProgramaFidelidade;

@@ -4,7 +4,9 @@ import com.raizesdonordeste.api.dto.usuario.UsuarioAtualizacaoDTO;
 import com.raizesdonordeste.api.dto.usuario.UsuarioCriacaoDTO;
 import com.raizesdonordeste.api.dto.usuario.UsuarioRespostaDTO;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
+import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.model.Usuario;
+import com.raizesdonordeste.domain.repository.LojaRepository;
 import com.raizesdonordeste.domain.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,6 +25,7 @@ import java.util.Objects;
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
+    private final LojaRepository lojaRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
@@ -34,12 +37,14 @@ public class UsuarioService {
         }
 
         boolean consentimentoFidelidade = resolverConsentimentoFidelidadeCriacao(dto);
+        Loja lojaVinculada = resolverLojaPorPerfil(dto.getPerfil(), dto.getLojaId());
 
         Usuario usuario = Usuario.builder()
                 .nome(dto.getNome())
                 .email(dto.getEmail())
                 .senha(passwordEncoder.encode(dto.getSenha()))
                 .perfil(dto.getPerfil())
+                .loja(lojaVinculada)
                 .ativo(true)
                 .consentimentoProgramaFidelidade(consentimentoFidelidade)
                 .build();
@@ -53,6 +58,11 @@ public class UsuarioService {
     public UsuarioRespostaDTO atualizar(Long id, UsuarioAtualizacaoDTO dto) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+
+        PerfilUsuario perfilFinal = dto.getPerfil() != null ? dto.getPerfil() : usuario.getPerfil();
+        Long lojaIdFinal = dto.getLojaId() != null
+                ? dto.getLojaId()
+                : (usuario.getLoja() != null ? usuario.getLoja().getId() : null);
 
         if (dto.getNome() != null) {
             usuario.setNome(dto.getNome());
@@ -71,6 +81,10 @@ public class UsuarioService {
 
         if (dto.getPerfil() != null) {
             usuario.setPerfil(dto.getPerfil());
+        }
+
+        if (dto.getLojaId() != null || dto.getPerfil() != null) {
+            usuario.setLoja(resolverLojaPorPerfil(perfilFinal, lojaIdFinal));
         }
 
         if (dto.getAtivo() != null) {
@@ -154,11 +168,31 @@ public class UsuarioService {
                 .nome(usuario.getNome())
                 .email(usuario.getEmail())
                 .perfil(usuario.getPerfil())
+                .lojaId(usuario.getLoja() != null ? usuario.getLoja().getId() : null)
                 .ativo(usuario.isAtivo())
                 .consentimentoProgramaFidelidade(usuario.isConsentimentoProgramaFidelidade())
                 .criadoEm(usuario.getCriadoEm())
                 .atualizadoEm(usuario.getAtualizadoEm())
                 .build();
+    }
+
+    private Loja resolverLojaPorPerfil(PerfilUsuario perfil, Long lojaId) {
+        boolean exigeLoja = perfil == PerfilUsuario.GERENTE || perfil == PerfilUsuario.FUNCIONARIO;
+
+        if (exigeLoja && lojaId == null) {
+            throw new IllegalArgumentException("lojaId é obrigatório para GERENTE e FUNCIONARIO");
+        }
+
+        if (!exigeLoja && lojaId != null) {
+            throw new IllegalArgumentException("lojaId deve ser nulo para CLIENTE, ADMIN e GERENCIA_MATRIZ");
+        }
+
+        if (!exigeLoja) {
+            return null;
+        }
+
+        return lojaRepository.findById(lojaId)
+                .orElseThrow(() -> new IllegalArgumentException("Loja não encontrada"));
     }
 
     private void validarPermissaoCriacao(PerfilUsuario perfilDesejado) {
