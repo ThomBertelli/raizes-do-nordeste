@@ -59,13 +59,13 @@ class EstoqueServiceTest {
     }
 
     @Test
-    @DisplayName("GERENCIA_MATRIZ sem lojaId deve receber erro de validação")
-    void gerenciaMatrizSemLojaIdDeveReceberErroDeValidacao() {
+    @DisplayName("GERENCIA_MATRIZ sem lojaId deve acessar visão global")
+    void gerenciaMatrizSemLojaIdDeveAcessarVisaoGlobal() {
         autenticar(1L, "matriz@teste.com", PerfilUsuario.GERENCIA_MATRIZ, null);
 
-        assertThatThrownBy(() -> estoqueService.validarAcessoEstoque(null))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("lojaId é obrigatório");
+        Long lojaAutorizada = estoqueService.validarAcessoEstoque(null);
+
+        assertThat(lojaAutorizada).isNull();
     }
 
     @Test
@@ -127,6 +127,54 @@ class EstoqueServiceTest {
         assertThat(resposta).isNotNull();
         verify(movimentacaoEstoqueRepository).findByLojaIdAndProdutoId(9L, 5L, pageable);
         verify(movimentacaoEstoqueRepository, never()).findByLojaId(anyLong(), org.mockito.ArgumentMatchers.any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("GERENCIA_MATRIZ sem lojaId deve listar estoque de todas as lojas")
+    void gerenciaMatrizSemLojaIdDeveListarEstoqueDeTodasAsLojas() {
+        autenticar(1L, "matriz@teste.com", PerfilUsuario.GERENCIA_MATRIZ, null);
+
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Estoque> pagina = new PageImpl<>(List.of(), pageable, 0);
+        when(estoqueRepository.findAll(pageable)).thenReturn(pagina);
+
+        Page<Estoque> resposta = estoqueService.listarEstoquesPorLoja(null, pageable);
+
+        assertThat(resposta).isNotNull();
+        verify(estoqueRepository).findAll(pageable);
+        verify(estoqueRepository, never()).findByLojaId(anyLong(), org.mockito.ArgumentMatchers.any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("GERENCIA_MATRIZ sem lojaId deve listar todas movimentações")
+    void gerenciaMatrizSemLojaIdDeveListarTodasMovimentacoes() {
+        autenticar(1L, "matriz@teste.com", PerfilUsuario.GERENCIA_MATRIZ, null);
+
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<MovimentacaoEstoque> pagina = new PageImpl<>(List.of(), pageable, 0);
+        when(movimentacaoEstoqueRepository.findAll(pageable)).thenReturn(pagina);
+
+        Page<MovimentacaoEstoque> resposta = estoqueService.listarMovimentacoesPorLoja(null, null, pageable);
+
+        assertThat(resposta).isNotNull();
+        verify(movimentacaoEstoqueRepository).findAll(pageable);
+        verify(movimentacaoEstoqueRepository, never()).findByLojaId(anyLong(), org.mockito.ArgumentMatchers.any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("GERENCIA_MATRIZ sem lojaId deve filtrar movimentações por produto em todas as lojas")
+    void gerenciaMatrizSemLojaIdDeveFiltrarMovimentacoesPorProdutoEmTodasAsLojas() {
+        autenticar(1L, "matriz@teste.com", PerfilUsuario.GERENCIA_MATRIZ, null);
+
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<MovimentacaoEstoque> pagina = new PageImpl<>(List.of(), pageable, 0);
+        when(movimentacaoEstoqueRepository.findByProdutoId(5L, pageable)).thenReturn(pagina);
+
+        Page<MovimentacaoEstoque> resposta = estoqueService.listarMovimentacoesPorLoja(null, 5L, pageable);
+
+        assertThat(resposta).isNotNull();
+        verify(movimentacaoEstoqueRepository).findByProdutoId(5L, pageable);
+        verify(movimentacaoEstoqueRepository, never()).findByLojaIdAndProdutoId(anyLong(), anyLong(), org.mockito.ArgumentMatchers.any(Pageable.class));
     }
 
     private void autenticar(Long id, String email, PerfilUsuario perfil, Long lojaId) {

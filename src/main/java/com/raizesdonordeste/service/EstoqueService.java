@@ -25,12 +25,24 @@ public class EstoqueService {
     @Transactional(readOnly = true)
     public Page<Estoque> listarEstoquesPorLoja(Long lojaId, Pageable pageable) {
         Long lojaAutorizadaId = validarAcessoEstoque(lojaId);
+
+        if (lojaAutorizadaId == null) {
+            return estoqueRepository.findAll(pageable);
+        }
+
         return estoqueRepository.findByLojaId(lojaAutorizadaId, pageable);
     }
 
     @Transactional(readOnly = true)
     public Page<MovimentacaoEstoque> listarMovimentacoesPorLoja(Long lojaId, Long produtoId, Pageable pageable) {
         Long lojaAutorizadaId = validarAcessoEstoque(lojaId);
+
+        if (lojaAutorizadaId == null) {
+            if (produtoId != null) {
+                return movimentacaoEstoqueRepository.findByProdutoId(produtoId, pageable);
+            }
+            return movimentacaoEstoqueRepository.findAll(pageable);
+        }
 
         if (produtoId != null) {
             return movimentacaoEstoqueRepository.findByLojaIdAndProdutoId(lojaAutorizadaId, produtoId, pageable);
@@ -44,9 +56,6 @@ public class EstoqueService {
         PerfilUsuario perfil = usuarioAutenticado.getPerfil();
 
         if (perfil == PerfilUsuario.GERENCIA_MATRIZ) {
-            if (lojaId == null) {
-                throw new IllegalArgumentException("lojaId é obrigatório para perfil GERENCIA_MATRIZ");
-            }
             return lojaId;
         }
 

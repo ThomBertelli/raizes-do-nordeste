@@ -20,6 +20,9 @@ public interface MovimentacaoEstoqueRepository extends JpaRepository<Movimentaca
     @Query("SELECT m FROM MovimentacaoEstoque m WHERE m.estoque.loja.id = :lojaId AND m.estoque.produto.id = :produtoId ORDER BY m.dataCriacao DESC")
     Page<MovimentacaoEstoque> findByLojaIdAndProdutoId(@Param("lojaId") Long lojaId, @Param("produtoId") Long produtoId, Pageable pageable);
 
+    @Query("SELECT m FROM MovimentacaoEstoque m WHERE m.estoque.produto.id = :produtoId ORDER BY m.dataCriacao DESC")
+    Page<MovimentacaoEstoque> findByProdutoId(@Param("produtoId") Long produtoId, Pageable pageable);
+
     @Query("SELECT m FROM MovimentacaoEstoque m WHERE m.estoque.id = :estoqueId ORDER BY m.dataCriacao DESC")
     Page<MovimentacaoEstoque> findByEstoqueId(@Param("estoqueId") Long estoqueId, Pageable pageable);
 
