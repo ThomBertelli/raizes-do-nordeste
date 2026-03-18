@@ -2,15 +2,20 @@ package com.raizesdonordeste.api.controller;
 
 import com.raizesdonordeste.api.dto.estoque.EstoqueRespostaDTO;
 import com.raizesdonordeste.api.dto.estoque.MovimentacaoEstoqueRespostaDTO;
+import com.raizesdonordeste.api.dto.estoque.MovimentacaoEstoqueRequisicaoDTO;
 import com.raizesdonordeste.domain.model.Estoque;
 import com.raizesdonordeste.domain.model.MovimentacaoEstoque;
 import com.raizesdonordeste.service.EstoqueService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -44,6 +49,26 @@ public class EstoqueController {
                 .map(this::toMovimentacaoRespostaDTO);
 
         return ResponseEntity.ok(resposta);
+    }
+
+    @PostMapping("/entrada")
+    public ResponseEntity<EstoqueRespostaDTO> registrarEntrada(
+            @RequestParam(required = false) Long lojaId,
+            @Valid @RequestBody MovimentacaoEstoqueRequisicaoDTO dto) {
+
+        Estoque estoque = estoqueService.registrarEntrada(lojaId, dto.getProdutoId(), dto.getQuantidade(), dto.getMotivo());
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(toEstoqueRespostaDTO(estoque));
+    }
+
+    @PostMapping("/saida")
+    public ResponseEntity<EstoqueRespostaDTO> registrarSaida(
+            @RequestParam(required = false) Long lojaId,
+            @Valid @RequestBody MovimentacaoEstoqueRequisicaoDTO dto) {
+
+        Estoque estoque = estoqueService.registrarSaida(lojaId, dto.getProdutoId(), dto.getQuantidade(), dto.getMotivo());
+
+        return ResponseEntity.status(HttpStatus.OK).body(toEstoqueRespostaDTO(estoque));
     }
 
     private EstoqueRespostaDTO toEstoqueRespostaDTO(Estoque estoque) {
