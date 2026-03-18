@@ -2,13 +2,22 @@ package com.raizesdonordeste.service;
 
 import com.raizesdonordeste.config.UsuarioAutenticado;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
+import com.raizesdonordeste.domain.enums.TipoMovimentacaoEstoque;
 import com.raizesdonordeste.domain.model.Estoque;
+import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.model.MovimentacaoEstoque;
+import com.raizesdonordeste.domain.model.Produto;
+import com.raizesdonordeste.domain.model.Usuario;
 import com.raizesdonordeste.domain.repository.EstoqueRepository;
+import com.raizesdonordeste.domain.repository.LojaRepository;
 import com.raizesdonordeste.domain.repository.MovimentacaoEstoqueRepository;
+import com.raizesdonordeste.domain.repository.ProdutoRepository;
+import com.raizesdonordeste.domain.repository.UsuarioRepository;
+import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,6 +30,43 @@ public class EstoqueService {
 
     private final EstoqueRepository estoqueRepository;
     private final MovimentacaoEstoqueRepository movimentacaoEstoqueRepository;
+    private final LojaRepository lojaRepository;
+    private final ProdutoRepository produtoRepository;
+    private final UsuarioRepository usuarioRepository;
+
+    @Transactional
+    public Estoque registrarEntrada(Long lojaId, Long produtoId, Integer quantidade, String motivo) {
+        validarQuantidade(quantidade);
+        Long lojaAutorizadaId = resolverLojaObrigatoriaParaMovimentacao(lojaId);
+
+        Estoque estoque = estoqueRepository.findByLojaIdAndProdutoIdWithLock(lojaAutorizadaId, produtoId)
+                .orElseGet(() -> buscarOuCriarEstoqueComRetry(lojaAutorizadaId, produtoId));
+
+        estoque.setQuantidade(estoque.getQuantidade() + quantidade);
+        Estoque estoqueAtualizado = estoqueRepository.save(estoque);
+
+        registrarMovimentacao(estoqueAtualizado, TipoMovimentacaoEstoque.ENTRADA, quantidade, motivo);
+        return estoqueAtualizado;
+    }
+
+    @Transactional
+    public Estoque registrarSaida(Long lojaId, Long produtoId, Integer quantidade, String motivo) {
+        validarQuantidade(quantidade);
+        Long lojaAutorizadaId = resolverLojaObrigatoriaParaMovimentacao(lojaId);
+
+        Estoque estoque = estoqueRepository.findByLojaIdAndProdutoIdWithLock(lojaAutorizadaId, produtoId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Estoque não encontrado para loja e produto informados"));
+
+        if (quantidade > estoque.getQuantidade()) {
+            throw new IllegalArgumentException("Saldo insuficiente em estoque");
+        }
+
+        estoque.setQuantidade(estoque.getQuantidade() - quantidade);
+        Estoque estoqueAtualizado = estoqueRepository.save(estoque);
+
+        registrarMovimentacao(estoqueAtualizado, TipoMovimentacaoEstoque.SAIDA, quantidade, motivo);
+        return estoqueAtualizado;
+    }
 
     @Transactional(readOnly = true)
     public Page<Estoque> listarEstoquesPorLoja(Long lojaId, Pageable pageable) {
@@ -74,6 +120,63 @@ public class EstoqueService {
         }
 
         throw new AccessDeniedException("Perfil sem permissão para acessar estoque");
+    }
+
+    private Long resolverLojaObrigatoriaParaMovimentacao(Long lojaId) {
+        Long lojaAutorizadaId = validarAcessoEstoque(lojaId);
+        if (lojaAutorizadaId == null) {
+            throw new IllegalArgumentException("lojaId é obrigatório para realizar movimentação de estoque");
+        }
+        return lojaAutorizadaId;
+    }
+
+    private Estoque criarEstoqueInicial(Long lojaId, Long produtoId) {
+        Loja loja = lojaRepository.findById(lojaId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Loja não encontrada"));
+
+        Produto produto = produtoRepository.findById(produtoId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Produto não encontrado"));
+
+        Estoque estoque = Estoque.builder()
+                .loja(loja)
+                .produto(produto)
+                .quantidade(0)
+                .build();
+
+        return estoqueRepository.save(estoque);
+    }
+
+    private Estoque buscarOuCriarEstoqueComRetry(Long lojaId, Long produtoId) {
+        try {
+            return criarEstoqueInicial(lojaId, produtoId);
+        } catch (DataIntegrityViolationException e) {
+            return estoqueRepository.findByLojaIdAndProdutoIdWithLock(lojaId, produtoId)
+                    .orElseThrow(() -> new IllegalStateException("Falha ao recuperar estoque após conflito de concorrência", e));
+        }
+    }
+
+    private void registrarMovimentacao(Estoque estoque,
+                                       TipoMovimentacaoEstoque tipo,
+                                       Integer quantidade,
+                                       String motivo) {
+        UsuarioAutenticado principal = obterUsuarioAutenticado();
+        Usuario usuario = usuarioRepository.getReferenceById(principal.getId());
+
+        MovimentacaoEstoque movimentacao = MovimentacaoEstoque.builder()
+                .estoque(estoque)
+                .tipo(tipo)
+                .quantidade(quantidade)
+                .motivo(motivo)
+                .usuario(usuario)
+                .build();
+
+        movimentacaoEstoqueRepository.save(movimentacao);
+    }
+
+    private void validarQuantidade(Integer quantidade) {
+        if (quantidade == null || quantidade <= 0) {
+            throw new IllegalArgumentException("Quantidade deve ser maior que zero");
+        }
     }
 
     private UsuarioAutenticado obterUsuarioAutenticado() {
