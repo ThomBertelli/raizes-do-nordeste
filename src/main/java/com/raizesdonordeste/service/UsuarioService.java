@@ -3,12 +3,14 @@ package com.raizesdonordeste.service;
 import com.raizesdonordeste.api.dto.usuario.UsuarioUpdateDTO;
 import com.raizesdonordeste.api.dto.usuario.UsuarioCreateDTO;
 import com.raizesdonordeste.api.dto.usuario.UsuarioResponseDTO;
+import com.raizesdonordeste.config.UsuarioAutenticado;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.model.Usuario;
 import com.raizesdonordeste.domain.repository.LojaRepository;
 import com.raizesdonordeste.domain.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -22,6 +24,7 @@ import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
@@ -50,7 +53,13 @@ public class UsuarioService {
                 .build();
 
         Usuario salvo = usuarioRepository.save(usuario);
-        
+        log.info("Usuario criado: usuarioId={}, perfil={}, lojaId={}, actorId={}, actorPerfil={}",
+                salvo.getId(),
+                salvo.getPerfil(),
+                salvo.getLoja() != null ? salvo.getLoja().getId() : null,
+                obterIdAtor(),
+                obterPerfilAtor());
+
         return converterParaDTO(salvo);
     }
 
@@ -96,6 +105,13 @@ public class UsuarioService {
         }
 
         Usuario atualizado = usuarioRepository.save(usuario);
+        log.info("Usuario atualizado: usuarioId={}, perfil={}, ativo={}, actorId={}, actorPerfil={}",
+                atualizado.getId(),
+                atualizado.getPerfil(),
+                atualizado.isAtivo(),
+                obterIdAtor(),
+                obterPerfilAtor());
+
         return converterParaDTO(atualizado);
     }
 
@@ -144,6 +160,7 @@ public class UsuarioService {
             throw new IllegalArgumentException("Usuário não encontrado");
         }
         usuarioRepository.deleteById(id);
+        log.info("Usuario deletado: usuarioId={}, actorId={}, actorPerfil={}", id, obterIdAtor(), obterPerfilAtor());
     }
 
     @Transactional
@@ -152,6 +169,7 @@ public class UsuarioService {
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
         usuario.setAtivo(false);
         usuarioRepository.save(usuario);
+        log.info("Usuario desativado: usuarioId={}, actorId={}, actorPerfil={}", id, obterIdAtor(), obterPerfilAtor());
     }
 
     @Transactional
@@ -160,6 +178,7 @@ public class UsuarioService {
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
         usuario.setAtivo(true);
         usuarioRepository.save(usuario);
+        log.info("Usuario ativado: usuarioId={}, actorId={}, actorPerfil={}", id, obterIdAtor(), obterPerfilAtor());
     }
 
     private UsuarioResponseDTO converterParaDTO(Usuario usuario) {
@@ -227,6 +246,37 @@ public class UsuarioService {
                 .findFirst()
                 .map(PerfilUsuario::valueOf)
                 .orElseThrow(() -> new AccessDeniedException("Perfil do usuário autenticado não identificado"));
+    }
+
+    private Long obterIdAtor() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null;
+        }
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof UsuarioAutenticado usuarioAutenticado) {
+            return usuarioAutenticado.getId();
+        }
+        return null;
+    }
+
+    private PerfilUsuario obterPerfilAtor() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null;
+        }
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof UsuarioAutenticado usuarioAutenticado) {
+            return usuarioAutenticado.getPerfil();
+        }
+        return authentication.getAuthorities().stream()
+                .map(authority -> authority.getAuthority())
+                .filter(Objects::nonNull)
+                .filter(authority -> authority.startsWith("ROLE_"))
+                .map(authority -> authority.substring(5))
+                .findFirst()
+                .map(PerfilUsuario::valueOf)
+                .orElse(null);
     }
 
     private boolean resolverConsentimentoFidelidadeCriacao(UsuarioCreateDTO dto) {
