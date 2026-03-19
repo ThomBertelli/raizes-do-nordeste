@@ -1,8 +1,8 @@
 package com.raizesdonordeste.api.controller;
 
-import com.raizesdonordeste.api.dto.usuario.UsuarioAtualizacaoDTO;
-import com.raizesdonordeste.api.dto.usuario.UsuarioCriacaoDTO;
-import com.raizesdonordeste.api.dto.usuario.UsuarioRespostaDTO;
+import com.raizesdonordeste.api.dto.usuario.UsuarioUpdateDTO;
+import com.raizesdonordeste.api.dto.usuario.UsuarioCreateDTO;
+import com.raizesdonordeste.api.dto.usuario.UsuarioResponseDTO;
 import com.raizesdonordeste.service.UsuarioService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,37 +21,37 @@ public class UsuarioController {
     private final UsuarioService usuarioService;
 
     @PostMapping
-    public ResponseEntity<UsuarioRespostaDTO> criar(@Valid @RequestBody UsuarioCriacaoDTO dto) {
-        UsuarioRespostaDTO usuario = usuarioService.criar(dto);
+    public ResponseEntity<UsuarioResponseDTO> criar(@Valid @RequestBody UsuarioCreateDTO dto) {
+        UsuarioResponseDTO usuario = usuarioService.criar(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(usuario);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UsuarioRespostaDTO> atualizar(
+    public ResponseEntity<UsuarioResponseDTO> atualizar(
             @PathVariable Long id,
-            @Valid @RequestBody UsuarioAtualizacaoDTO dto) {
-        UsuarioRespostaDTO usuario = usuarioService.atualizar(id, dto);
+            @Valid @RequestBody UsuarioUpdateDTO dto) {
+        UsuarioResponseDTO usuario = usuarioService.atualizar(id, dto);
         return ResponseEntity.ok(usuario);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UsuarioRespostaDTO> buscarPorId(@PathVariable Long id) {
-        UsuarioRespostaDTO usuario = usuarioService.buscarPorId(id);
+    public ResponseEntity<UsuarioResponseDTO> buscarPorId(@PathVariable Long id) {
+        UsuarioResponseDTO usuario = usuarioService.buscarPorId(id);
         return ResponseEntity.ok(usuario);
     }
 
     @GetMapping
-    public ResponseEntity<Page<UsuarioRespostaDTO>> listarTodos(
+    public ResponseEntity<Page<UsuarioResponseDTO>> listarTodos(
             @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
-        Page<UsuarioRespostaDTO> usuarios = usuarioService.listarTodos(pageable);
+        Page<UsuarioResponseDTO> usuarios = usuarioService.listarTodos(pageable);
         return ResponseEntity.ok(usuarios);
     }
 
     @GetMapping("/buscar")
-    public ResponseEntity<Page<UsuarioRespostaDTO>> buscarPorNome(
+    public ResponseEntity<Page<UsuarioResponseDTO>> buscarPorNome(
             @RequestParam String nome,
             @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
-        Page<UsuarioRespostaDTO> usuarios = usuarioService.buscarPorNome(nome, pageable);
+        Page<UsuarioResponseDTO> usuarios = usuarioService.buscarPorNome(nome, pageable);
         return ResponseEntity.ok(usuarios);
     }
 

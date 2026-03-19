@@ -11,7 +11,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreatePedidoItemRequest {
+public class PedidoItemRequestDTO {
 
     @NotNull(message = "produtoId é obrigatório")
     private Long produtoId;

@@ -1,8 +1,8 @@
 package com.raizesdonordeste.service;
 
-import com.raizesdonordeste.api.dto.loja.LojaAtualizacaoDTO;
-import com.raizesdonordeste.api.dto.loja.LojaCriacaoDTO;
-import com.raizesdonordeste.api.dto.loja.LojaRespostaDTO;
+import com.raizesdonordeste.api.dto.loja.LojaUpdateDTO;
+import com.raizesdonordeste.api.dto.loja.LojaCreateDTO;
+import com.raizesdonordeste.api.dto.loja.LojaResponseDTO;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.repository.LojaRepository;
@@ -23,7 +23,7 @@ public class LojaService {
     private final LojaRepository lojaRepository;
 
     @Transactional
-    public LojaRespostaDTO criar(LojaCriacaoDTO dto) {
+    public LojaResponseDTO criar(LojaCreateDTO dto) {
         validarAutorizacaoGerenciaMatriz();
         if (lojaRepository.existsByCnpj(dto.getCnpj())) {
             throw new IllegalArgumentException("CNPJ já cadastrado");
@@ -40,7 +40,7 @@ public class LojaService {
     }
 
     @Transactional
-    public LojaRespostaDTO atualizar(Long id, LojaAtualizacaoDTO dto) {
+    public LojaResponseDTO atualizar(Long id, LojaUpdateDTO dto) {
         validarAutorizacaoGerenciaMatriz();
         Loja loja = buscarEntidade(id);
 
@@ -67,22 +67,22 @@ public class LojaService {
     }
 
     @Transactional(readOnly = true)
-    public LojaRespostaDTO buscarPorId(Long id) {
+    public LojaResponseDTO buscarPorId(Long id) {
         return toDTO(buscarEntidade(id));
     }
 
     @Transactional(readOnly = true)
-    public Page<LojaRespostaDTO> listarTodos(Pageable pageable) {
+    public Page<LojaResponseDTO> listarTodos(Pageable pageable) {
         return lojaRepository.findAll(pageable).map(this::toDTO);
     }
 
     @Transactional(readOnly = true)
-    public Page<LojaRespostaDTO> buscarAtivas(Pageable pageable) {
+    public Page<LojaResponseDTO> buscarAtivas(Pageable pageable) {
         return lojaRepository.findByAtiva(true, pageable).map(this::toDTO);
     }
 
     @Transactional(readOnly = true)
-    public Page<LojaRespostaDTO> buscarPorNome(String nome, Pageable pageable) {
+    public Page<LojaResponseDTO> buscarPorNome(String nome, Pageable pageable) {
         return lojaRepository.findByNomeContainingIgnoreCase(nome, pageable).map(this::toDTO);
     }
 
@@ -116,8 +116,8 @@ public class LojaService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Loja não encontrada"));
     }
 
-    private LojaRespostaDTO toDTO(Loja loja) {
-        return LojaRespostaDTO.builder()
+    private LojaResponseDTO toDTO(Loja loja) {
+        return LojaResponseDTO.builder()
                 .id(loja.getId())
                 .nome(loja.getNome())
                 .cnpj(loja.getCnpj())

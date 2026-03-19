@@ -15,7 +15,7 @@ import java.math.BigDecimal;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProdutoCriacaoDTO {
+public class ProdutoCreateDTO {
 
     @NotBlank(message = "Nome é obrigatório")
     @Size(min = 3, max = 150, message = "Nome deve ter entre 3 e 150 caracteres")

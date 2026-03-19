@@ -10,7 +10,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class LojaAtualizacaoDTO {
+public class LojaUpdateDTO {
 
     @Size(min = 3, max = 150, message = "Nome deve ter entre 3 e 150 caracteres")
     private String nome;

@@ -1,8 +1,8 @@
 package com.raizesdonordeste.service;
 
-import com.raizesdonordeste.api.dto.loja.LojaAtualizacaoDTO;
-import com.raizesdonordeste.api.dto.loja.LojaCriacaoDTO;
-import com.raizesdonordeste.api.dto.loja.LojaRespostaDTO;
+import com.raizesdonordeste.api.dto.loja.LojaUpdateDTO;
+import com.raizesdonordeste.api.dto.loja.LojaCreateDTO;
+import com.raizesdonordeste.api.dto.loja.LojaResponseDTO;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.repository.LojaRepository;
@@ -61,7 +61,7 @@ class LojaServiceTest {
             return l;
         });
 
-        LojaRespostaDTO resposta = lojaService.criar(novaLojaCriacaoDTO());
+        LojaResponseDTO resposta = lojaService.criar(novaLojaCriacaoDTO());
 
         assertThat(resposta).isNotNull();
         assertThat(resposta.getNome()).isEqualTo("Loja Teste");
@@ -76,8 +76,8 @@ class LojaServiceTest {
         when(lojaRepository.findById(1L)).thenReturn(Optional.of(lojaExistente()));
         when(lojaRepository.save(any(Loja.class))).thenAnswer(inv -> inv.getArgument(0, Loja.class));
 
-        LojaAtualizacaoDTO dto = new LojaAtualizacaoDTO("Novo Nome", null, null, null);
-        LojaRespostaDTO resposta = lojaService.atualizar(1L, dto);
+        LojaUpdateDTO dto = new LojaUpdateDTO("Novo Nome", null, null, null);
+        LojaResponseDTO resposta = lojaService.atualizar(1L, dto);
 
         assertThat(resposta.getNome()).isEqualTo("Novo Nome");
         verify(lojaRepository).save(any(Loja.class));
@@ -145,7 +145,7 @@ class LojaServiceTest {
     void somenteGerenciaMatrizPodeAtualizarLoja(PerfilUsuario perfilSolicitante) {
         autenticarComo(perfilSolicitante);
 
-        assertThatThrownBy(() -> lojaService.atualizar(1L, new LojaAtualizacaoDTO("Novo Nome", null, null, null)))
+        assertThatThrownBy(() -> lojaService.atualizar(1L, new LojaUpdateDTO("Novo Nome", null, null, null)))
                 .isInstanceOf(AccessDeniedException.class);
 
         verify(lojaRepository, never()).save(any());
@@ -223,7 +223,7 @@ class LojaServiceTest {
         when(lojaRepository.findById(1L)).thenReturn(Optional.of(loja));
         when(lojaRepository.existsByCnpj("99.999.999/0001-99")).thenReturn(true);
 
-        LojaAtualizacaoDTO dto = new LojaAtualizacaoDTO(null, "99.999.999/0001-99", null, null);
+        LojaUpdateDTO dto = new LojaUpdateDTO(null, "99.999.999/0001-99", null, null);
 
         assertThatThrownBy(() -> lojaService.atualizar(1L, dto))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -282,7 +282,7 @@ class LojaServiceTest {
             return l;
         });
 
-        LojaRespostaDTO resposta = lojaService.criar(novaLojaCriacaoDTO());
+        LojaResponseDTO resposta = lojaService.criar(novaLojaCriacaoDTO());
 
         assertThat(resposta.isAtiva()).isTrue();
     }
@@ -297,8 +297,8 @@ class LojaServiceTest {
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
-    private LojaCriacaoDTO novaLojaCriacaoDTO() {
-        return new LojaCriacaoDTO("Loja Teste", "12.345.678/0001-90", "Rua das Flores, 123");
+    private LojaCreateDTO novaLojaCriacaoDTO() {
+        return new LojaCreateDTO("Loja Teste", "12.345.678/0001-90", "Rua das Flores, 123");
     }
 
     private Loja lojaExistente() {

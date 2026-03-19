@@ -1,8 +1,8 @@
 package com.raizesdonordeste.service;
 
-import com.raizesdonordeste.api.dto.auth.CadastroRequest;
-import com.raizesdonordeste.api.dto.auth.LoginRequest;
-import com.raizesdonordeste.api.dto.auth.LoginResponse;
+import com.raizesdonordeste.api.dto.auth.CadastroRequestDTO;
+import com.raizesdonordeste.api.dto.auth.LoginRequestDTO;
+import com.raizesdonordeste.api.dto.auth.LoginResponseDTO;
 import com.raizesdonordeste.config.JwtTokenProvider;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.model.Usuario;
@@ -33,21 +33,21 @@ public class AuthService {
     private Long jwtExpiration;
 
     @Transactional(readOnly = true)
-    public LoginResponse autenticar(LoginRequest loginRequest) {
+    public LoginResponseDTO autenticar(LoginRequestDTO loginRequestDTO) {
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            loginRequest.getEmail(),
-                            loginRequest.getSenha()
+                            loginRequestDTO.getEmail(),
+                            loginRequestDTO.getSenha()
                     )
             );
 
             String token = jwtTokenProvider.gerarToken(authentication);
 
-            Usuario usuario = usuarioRepository.findByEmail(loginRequest.getEmail())
+            Usuario usuario = usuarioRepository.findByEmail(loginRequestDTO.getEmail())
                     .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
 
-            return LoginResponse.builder()
+            return LoginResponseDTO.builder()
                     .accessToken(token)
                     .expiresIn(jwtExpiration)
                     .id(usuario.getId())
@@ -62,26 +62,26 @@ public class AuthService {
     }
 
     @Transactional
-    public LoginResponse cadastrar(CadastroRequest cadastroRequest) {
+    public LoginResponseDTO cadastrar(CadastroRequestDTO cadastroRequestDTO) {
 
-        if (usuarioRepository.existsByEmail(cadastroRequest.getEmail())) {
+        if (usuarioRepository.existsByEmail(cadastroRequestDTO.getEmail())) {
             throw new EmailJaCadastradoException("Email já cadastrado");
         }
 
         Usuario usuario = Usuario.builder()
-                .nome(cadastroRequest.getNome())
-                .email(cadastroRequest.getEmail())
-                .senha(passwordEncoder.encode(cadastroRequest.getSenha()))
+                .nome(cadastroRequestDTO.getNome())
+                .email(cadastroRequestDTO.getEmail())
+                .senha(passwordEncoder.encode(cadastroRequestDTO.getSenha()))
                 .perfil(PerfilUsuario.CLIENTE)
                 .ativo(true)
-                .consentimentoProgramaFidelidade(cadastroRequest.isConsentimentoProgramaFidelidade())
+                .consentimentoProgramaFidelidade(cadastroRequestDTO.isConsentimentoProgramaFidelidade())
                 .build();
 
         Usuario salvo = usuarioRepository.save(usuario);
 
         String token = jwtTokenProvider.gerarToken(salvo.getEmail());
 
-        return LoginResponse.builder()
+        return LoginResponseDTO.builder()
                 .accessToken(token)
                 .expiresIn(jwtExpiration)
                 .id(salvo.getId())

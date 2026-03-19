@@ -1,8 +1,8 @@
 package com.raizesdonordeste.service;
 
-import com.raizesdonordeste.api.dto.produto.ProdutoAtualizacaoDTO;
-import com.raizesdonordeste.api.dto.produto.ProdutoCriacaoDTO;
-import com.raizesdonordeste.api.dto.produto.ProdutoRespostaDTO;
+import com.raizesdonordeste.api.dto.produto.ProdutoUpdateDTO;
+import com.raizesdonordeste.api.dto.produto.ProdutoCreateDTO;
+import com.raizesdonordeste.api.dto.produto.ProdutoResponseDTO;
 import com.raizesdonordeste.domain.model.Produto;
 import com.raizesdonordeste.domain.repository.ProdutoRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
@@ -21,7 +21,7 @@ public class ProdutoService {
     private final ProdutoRepository produtoRepository;
 
     @Transactional
-    public ProdutoRespostaDTO criar(ProdutoCriacaoDTO dto) {
+    public ProdutoResponseDTO criar(ProdutoCreateDTO dto) {
         if (produtoRepository.existsByNome(dto.getNome())) {
             throw new IllegalArgumentException("Nome de produto já cadastrado");
         }
@@ -38,7 +38,7 @@ public class ProdutoService {
     }
 
     @Transactional
-    public ProdutoRespostaDTO atualizar(Long id, ProdutoAtualizacaoDTO dados) {
+    public ProdutoResponseDTO atualizar(Long id, ProdutoUpdateDTO dados) {
         Produto produto = buscarEntidade(id);
 
         if (dados.getNome() != null && !dados.getNome().equals(produto.getNome())) {
@@ -61,32 +61,32 @@ public class ProdutoService {
     }
 
     @Transactional(readOnly = true)
-    public ProdutoRespostaDTO buscarPorId(Long id) {
+    public ProdutoResponseDTO buscarPorId(Long id) {
         return converterParaDTO(buscarEntidade(id));
     }
 
     @Transactional(readOnly = true)
-    public Page<ProdutoRespostaDTO> listarTodos(Pageable pageable) {
+    public Page<ProdutoResponseDTO> listarTodos(Pageable pageable) {
         return produtoRepository.findAll(pageable).map(this::converterParaDTO);
     }
 
     @Transactional(readOnly = true)
-    public Page<ProdutoRespostaDTO> buscarAtivos(Pageable pageable) {
+    public Page<ProdutoResponseDTO> buscarAtivos(Pageable pageable) {
         return produtoRepository.findByAtivo(true, pageable).map(this::converterParaDTO);
     }
 
     @Transactional(readOnly = true)
-    public Page<ProdutoRespostaDTO> buscarPorNome(String nome, Pageable pageable) {
+    public Page<ProdutoResponseDTO> buscarPorNome(String nome, Pageable pageable) {
         return produtoRepository.findByNomeContainingIgnoreCase(nome, pageable).map(this::converterParaDTO);
     }
 
     @Transactional(readOnly = true)
-    public Page<ProdutoRespostaDTO> buscarPorDescricao(String descricao, Pageable pageable) {
+    public Page<ProdutoResponseDTO> buscarPorDescricao(String descricao, Pageable pageable) {
         return produtoRepository.findByDescricaoContainingIgnoreCase(descricao, pageable).map(this::converterParaDTO);
     }
 
     @Transactional(readOnly = true)
-    public Page<ProdutoRespostaDTO> buscarPorFaixaDePreco(BigDecimal precoMin, BigDecimal precoMax, Pageable pageable) {
+    public Page<ProdutoResponseDTO> buscarPorFaixaDePreco(BigDecimal precoMin, BigDecimal precoMax, Pageable pageable) {
         return produtoRepository.findByPrecoBetween(precoMin, precoMax, pageable).map(this::converterParaDTO);
     }
 
@@ -117,8 +117,8 @@ public class ProdutoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Produto não encontrado"));
     }
 
-    private ProdutoRespostaDTO converterParaDTO(Produto produto) {
-        return ProdutoRespostaDTO.builder()
+    private ProdutoResponseDTO converterParaDTO(Produto produto) {
+        return ProdutoResponseDTO.builder()
                 .id(produto.getId())
                 .nome(produto.getNome())
                 .descricao(produto.getDescricao())

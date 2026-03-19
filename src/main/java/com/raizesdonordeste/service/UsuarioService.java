@@ -1,8 +1,8 @@
 package com.raizesdonordeste.service;
 
-import com.raizesdonordeste.api.dto.usuario.UsuarioAtualizacaoDTO;
-import com.raizesdonordeste.api.dto.usuario.UsuarioCriacaoDTO;
-import com.raizesdonordeste.api.dto.usuario.UsuarioRespostaDTO;
+import com.raizesdonordeste.api.dto.usuario.UsuarioUpdateDTO;
+import com.raizesdonordeste.api.dto.usuario.UsuarioCreateDTO;
+import com.raizesdonordeste.api.dto.usuario.UsuarioResponseDTO;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.model.Usuario;
@@ -29,7 +29,7 @@ public class UsuarioService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
-    public UsuarioRespostaDTO criar(UsuarioCriacaoDTO dto) {
+    public UsuarioResponseDTO criar(UsuarioCreateDTO dto) {
         validarPermissaoCriacao(dto.getPerfil());
 
         if (usuarioRepository.existsByEmail(dto.getEmail())) {
@@ -55,7 +55,7 @@ public class UsuarioService {
     }
 
     @Transactional
-    public UsuarioRespostaDTO atualizar(Long id, UsuarioAtualizacaoDTO dto) {
+    public UsuarioResponseDTO atualizar(Long id, UsuarioUpdateDTO dto) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
 
@@ -100,26 +100,26 @@ public class UsuarioService {
     }
 
     @Transactional(readOnly = true)
-    public UsuarioRespostaDTO buscarPorId(Long id) {
+    public UsuarioResponseDTO buscarPorId(Long id) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
         return converterParaDTO(usuario);
     }
 
     @Transactional(readOnly = true)
-    public Page<UsuarioRespostaDTO> listarTodos(Pageable pageable) {
+    public Page<UsuarioResponseDTO> listarTodos(Pageable pageable) {
         return usuarioRepository.findAll(pageable)
                 .map(this::converterParaDTO);
     }
 
     @Transactional(readOnly = true)
-    public Page<UsuarioRespostaDTO> buscarPorNome(String nome, Pageable pageable) {
+    public Page<UsuarioResponseDTO> buscarPorNome(String nome, Pageable pageable) {
         return usuarioRepository.findByNomeContainingIgnoreCase(nome, pageable)
                 .map(this::converterParaDTO);
     }
 
     @Transactional(readOnly = true)
-    public Page<UsuarioRespostaDTO> buscarPorPerfil(String perfil, Pageable pageable) {
+    public Page<UsuarioResponseDTO> buscarPorPerfil(String perfil, Pageable pageable) {
         return usuarioRepository.findByPerfil(
                 com.raizesdonordeste.domain.enums.PerfilUsuario.valueOf(perfil.toUpperCase()), 
                 pageable
@@ -127,13 +127,13 @@ public class UsuarioService {
     }
 
     @Transactional(readOnly = true)
-    public Page<UsuarioRespostaDTO> buscarAtivos(Pageable pageable) {
+    public Page<UsuarioResponseDTO> buscarAtivos(Pageable pageable) {
         return usuarioRepository.findByAtivo(true, pageable)
                 .map(this::converterParaDTO);
     }
 
     @Transactional(readOnly = true)
-    public Page<UsuarioRespostaDTO> buscarComConsentimentoFidelidade(Pageable pageable) {
+    public Page<UsuarioResponseDTO> buscarComConsentimentoFidelidade(Pageable pageable) {
         return usuarioRepository.findByConsentimentoProgramaFidelidadeTrue(pageable)
                 .map(this::converterParaDTO);
     }
@@ -162,8 +162,8 @@ public class UsuarioService {
         usuarioRepository.save(usuario);
     }
 
-    private UsuarioRespostaDTO converterParaDTO(Usuario usuario) {
-        return UsuarioRespostaDTO.builder()
+    private UsuarioResponseDTO converterParaDTO(Usuario usuario) {
+        return UsuarioResponseDTO.builder()
                 .id(usuario.getId())
                 .nome(usuario.getNome())
                 .email(usuario.getEmail())
@@ -229,7 +229,7 @@ public class UsuarioService {
                 .orElseThrow(() -> new AccessDeniedException("Perfil do usuário autenticado não identificado"));
     }
 
-    private boolean resolverConsentimentoFidelidadeCriacao(UsuarioCriacaoDTO dto) {
+    private boolean resolverConsentimentoFidelidadeCriacao(UsuarioCreateDTO dto) {
         if (dto.getPerfil() == PerfilUsuario.CLIENTE) {
             if (dto.getConsentimentoProgramaFidelidade() == null) {
                 throw new IllegalArgumentException("Consentimento do programa de fidelidade é obrigatório para perfil CLIENTE");

@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProdutoAtualizacaoDTO {
+public class ProdutoUpdateDTO {
 
     @Size(min = 3, max = 150, message = "Nome deve ter entre 3 e 150 caracteres")
     private String nome;

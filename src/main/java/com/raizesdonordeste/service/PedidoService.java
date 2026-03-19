@@ -1,10 +1,9 @@
 package com.raizesdonordeste.service;
 
-import com.raizesdonordeste.api.dto.pedido.CreatePedidoRequest;
-import com.raizesdonordeste.api.dto.pedido.PedidoRespostaDTO;
+import com.raizesdonordeste.api.dto.pedido.PedidoRequestDTO;
+import com.raizesdonordeste.api.dto.pedido.PedidoResponseDTO;
 import com.raizesdonordeste.config.UsuarioAutenticado;
 import com.raizesdonordeste.domain.enums.StatusPedido;
-import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.model.ItemPedido;
 import com.raizesdonordeste.domain.model.Pedido;
 import com.raizesdonordeste.domain.model.Estoque;
@@ -41,7 +40,7 @@ public class PedidoService {
     private final UsuarioRepository usuarioRepository;
 
     @Transactional(readOnly = true)
-    public Page<PedidoRespostaDTO> listarPorLoja(Long lojaId, Pageable pageable) {
+    public Page<PedidoResponseDTO> listarPorLoja(Long lojaId, Pageable pageable) {
         UsuarioAutenticado principal = obterPrincipalAutenticado();
         Long lojaAutorizada = pedidoAuthorization.podeListarPedidos(principal, lojaId);
 
@@ -56,7 +55,7 @@ public class PedidoService {
     }
 
     @Transactional(readOnly = true)
-    public Page<PedidoRespostaDTO> listarMeusPedidos(Pageable pageable) {
+    public Page<PedidoResponseDTO> listarMeusPedidos(Pageable pageable) {
         UsuarioAutenticado principal = obterPrincipalAutenticado();
 
         pedidoAuthorization.exigirCliente(principal);
@@ -67,7 +66,7 @@ public class PedidoService {
     }
 
     @Transactional(readOnly = true)
-    public PedidoRespostaDTO buscarPorId(Long id) {
+    public PedidoResponseDTO buscarPorId(Long id) {
         UsuarioAutenticado principal = obterPrincipalAutenticado();
         Pedido pedido = buscarEntidade(id);
 
@@ -77,7 +76,7 @@ public class PedidoService {
     }
 
     @Transactional
-    public PedidoRespostaDTO criar(CreatePedidoRequest request) {
+    public PedidoResponseDTO criar(PedidoRequestDTO request) {
         validarRequestCriacao(request);
 
         UsuarioAutenticado principal = obterPrincipalAutenticado();
@@ -136,7 +135,7 @@ public class PedidoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Pedido não encontrado: " + id));
     }
 
-    private void validarRequestCriacao(CreatePedidoRequest request) {
+    private void validarRequestCriacao(PedidoRequestDTO request) {
         if (request == null) {
             throw new IllegalArgumentException("Dados do pedido são obrigatórios");
         }
@@ -166,8 +165,8 @@ public class PedidoService {
         return usuarioAutenticado;
     }
 
-    private PedidoRespostaDTO toDTO(Pedido pedido) {
-        return PedidoRespostaDTO.builder()
+    private PedidoResponseDTO toDTO(Pedido pedido) {
+        return PedidoResponseDTO.builder()
                 .id(pedido.getId())
                 .lojaId(pedido.getLoja().getId())
                 .lojaNome(pedido.getLoja().getNome())

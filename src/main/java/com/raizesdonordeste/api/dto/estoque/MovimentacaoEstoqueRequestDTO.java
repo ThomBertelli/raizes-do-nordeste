@@ -14,7 +14,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class MovimentacaoEstoqueRequisicaoDTO {
+public class MovimentacaoEstoqueRequestDTO {
 
     @NotNull(message = "Produto ID é obrigatório")
     private Long produtoId;

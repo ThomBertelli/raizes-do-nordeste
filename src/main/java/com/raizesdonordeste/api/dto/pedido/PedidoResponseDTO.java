@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PedidoRespostaDTO {
+public class PedidoResponseDTO {
 
     private Long id;
     private Long lojaId;

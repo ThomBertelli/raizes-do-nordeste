@@ -15,7 +15,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreatePedidoRequest {
+public class PedidoRequestDTO {
 
     @NotNull(message = "lojaId é obrigatório")
     private Long lojaId;
@@ -25,6 +25,6 @@ public class CreatePedidoRequest {
 
     @NotEmpty(message = "itens são obrigatórios")
     @Valid
-    private List<CreatePedidoItemRequest> itens;
+    private List<PedidoItemRequestDTO> itens;
 }
 

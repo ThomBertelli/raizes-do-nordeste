@@ -1,8 +1,8 @@
 package com.raizesdonordeste.api.controller;
 
-import com.raizesdonordeste.api.dto.auth.CadastroRequest;
-import com.raizesdonordeste.api.dto.auth.LoginRequest;
-import com.raizesdonordeste.api.dto.auth.LoginResponse;
+import com.raizesdonordeste.api.dto.auth.CadastroRequestDTO;
+import com.raizesdonordeste.api.dto.auth.LoginRequestDTO;
+import com.raizesdonordeste.api.dto.auth.LoginResponseDTO;
 import com.raizesdonordeste.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,14 +21,14 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
-        LoginResponse response = authService.autenticar(loginRequest);
+    public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO loginRequestDTO) {
+        LoginResponseDTO response = authService.autenticar(loginRequestDTO);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/cadastro")
-    public ResponseEntity<LoginResponse> cadastro(@Valid @RequestBody CadastroRequest cadastroRequest) {
-        LoginResponse response = authService.cadastrar(cadastroRequest);
+    public ResponseEntity<LoginResponseDTO> cadastro(@Valid @RequestBody CadastroRequestDTO cadastroRequestDTO) {
+        LoginResponseDTO response = authService.cadastrar(cadastroRequestDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

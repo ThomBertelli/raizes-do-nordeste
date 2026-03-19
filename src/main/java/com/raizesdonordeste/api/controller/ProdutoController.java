@@ -1,8 +1,8 @@
 package com.raizesdonordeste.api.controller;
 
-import com.raizesdonordeste.api.dto.produto.ProdutoAtualizacaoDTO;
-import com.raizesdonordeste.api.dto.produto.ProdutoCriacaoDTO;
-import com.raizesdonordeste.api.dto.produto.ProdutoRespostaDTO;
+import com.raizesdonordeste.api.dto.produto.ProdutoUpdateDTO;
+import com.raizesdonordeste.api.dto.produto.ProdutoCreateDTO;
+import com.raizesdonordeste.api.dto.produto.ProdutoResponseDTO;
 import com.raizesdonordeste.service.ProdutoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,50 +32,50 @@ public class ProdutoController {
     private final ProdutoService produtoService;
 
     @PostMapping
-    public ResponseEntity<ProdutoRespostaDTO> criar(@Valid @RequestBody ProdutoCriacaoDTO dto) {
+    public ResponseEntity<ProdutoResponseDTO> criar(@Valid @RequestBody ProdutoCreateDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(produtoService.criar(dto));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProdutoRespostaDTO> atualizar(
+    public ResponseEntity<ProdutoResponseDTO> atualizar(
             @PathVariable Long id,
-            @Valid @RequestBody ProdutoAtualizacaoDTO dto) {
+            @Valid @RequestBody ProdutoUpdateDTO dto) {
         return ResponseEntity.ok(produtoService.atualizar(id, dto));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProdutoRespostaDTO> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<ProdutoResponseDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(produtoService.buscarPorId(id));
     }
 
     @GetMapping
-    public ResponseEntity<Page<ProdutoRespostaDTO>> listarTodos(
+    public ResponseEntity<Page<ProdutoResponseDTO>> listarTodos(
             @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
         return ResponseEntity.ok(produtoService.listarTodos(pageable));
     }
 
     @GetMapping("/ativos")
-    public ResponseEntity<Page<ProdutoRespostaDTO>> listarAtivos(
+    public ResponseEntity<Page<ProdutoResponseDTO>> listarAtivos(
             @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
         return ResponseEntity.ok(produtoService.buscarAtivos(pageable));
     }
 
     @GetMapping("/buscar")
-    public ResponseEntity<Page<ProdutoRespostaDTO>> buscarPorNome(
+    public ResponseEntity<Page<ProdutoResponseDTO>> buscarPorNome(
             @RequestParam String nome,
             @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
         return ResponseEntity.ok(produtoService.buscarPorNome(nome, pageable));
     }
 
     @GetMapping("/buscar-descricao")
-    public ResponseEntity<Page<ProdutoRespostaDTO>> buscarPorDescricao(
+    public ResponseEntity<Page<ProdutoResponseDTO>> buscarPorDescricao(
             @RequestParam String descricao,
             @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
         return ResponseEntity.ok(produtoService.buscarPorDescricao(descricao, pageable));
     }
 
     @GetMapping("/faixa-preco")
-    public ResponseEntity<Page<ProdutoRespostaDTO>> buscarPorFaixaDePreco(
+    public ResponseEntity<Page<ProdutoResponseDTO>> buscarPorFaixaDePreco(
             @RequestParam BigDecimal precoMin,
             @RequestParam BigDecimal precoMax,
             @PageableDefault(size = 20, sort = "nome") Pageable pageable) {

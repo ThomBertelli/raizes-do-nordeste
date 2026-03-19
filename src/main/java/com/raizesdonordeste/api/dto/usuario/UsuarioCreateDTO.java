@@ -1,7 +1,10 @@
-package com.raizesdonordeste.api.dto.auth;
+package com.raizesdonordeste.api.dto.usuario;
 
+import com.raizesdonordeste.domain.enums.PerfilUsuario;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -12,7 +15,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CadastroRequest {
+public class UsuarioCreateDTO {
 
     @NotBlank(message = "Nome é obrigatório")
     @Size(min = 3, max = 150, message = "Nome deve ter entre 3 e 150 caracteres")
@@ -26,6 +29,19 @@ public class CadastroRequest {
     @Size(min = 8, message = "Senha deve ter no mínimo 8 caracteres")
     private String senha;
 
-    private boolean consentimentoProgramaFidelidade = false;
+    @NotNull(message = "Perfil é obrigatório")
+    private PerfilUsuario perfil;
+
+    private Long lojaId;
+
+    private Boolean consentimentoProgramaFidelidade;
+
+    @AssertTrue(message = "Consentimento do programa de fidelidade é obrigatório para perfil CLIENTE")
+    public boolean isConsentimentoValidoParaPerfil() {
+        if (perfil == PerfilUsuario.CLIENTE) {
+            return consentimentoProgramaFidelidade != null;
+        }
+        return true;
+    }
 }
 

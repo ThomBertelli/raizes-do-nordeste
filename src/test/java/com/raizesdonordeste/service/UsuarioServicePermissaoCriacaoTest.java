@@ -1,7 +1,7 @@
 package com.raizesdonordeste.service;
 
-import com.raizesdonordeste.api.dto.usuario.UsuarioCriacaoDTO;
-import com.raizesdonordeste.api.dto.usuario.UsuarioRespostaDTO;
+import com.raizesdonordeste.api.dto.usuario.UsuarioCreateDTO;
+import com.raizesdonordeste.api.dto.usuario.UsuarioResponseDTO;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.model.Usuario;
@@ -66,9 +66,9 @@ class UsuarioServicePermissaoCriacaoTest {
         autenticarComo(PerfilUsuario.ADMIN);
         configurarCriacaoBemSucedida();
 
-        UsuarioCriacaoDTO dto = novoUsuarioDto(perfilDesejado, "admin-cria-" + perfilDesejado.name().toLowerCase() + "@mail.com");
+        UsuarioCreateDTO dto = novoUsuarioDto(perfilDesejado, "admin-cria-" + perfilDesejado.name().toLowerCase() + "@mail.com");
 
-        UsuarioRespostaDTO resposta = usuarioService.criar(dto);
+        UsuarioResponseDTO resposta = usuarioService.criar(dto);
 
         assertThat(resposta).isNotNull();
         assertThat(resposta.getPerfil()).isEqualTo(perfilDesejado);
@@ -82,9 +82,9 @@ class UsuarioServicePermissaoCriacaoTest {
         autenticarComo(PerfilUsuario.ADMIN);
         configurarCriacaoBemSucedida();
 
-        UsuarioCriacaoDTO dto = novoUsuarioDto(PerfilUsuario.ADMIN, "admin-cria-admin@mail.com");
+        UsuarioCreateDTO dto = novoUsuarioDto(PerfilUsuario.ADMIN, "admin-cria-admin@mail.com");
 
-        UsuarioRespostaDTO resposta = usuarioService.criar(dto);
+        UsuarioResponseDTO resposta = usuarioService.criar(dto);
 
         assertThat(resposta).isNotNull();
         assertThat(resposta.getPerfil()).isEqualTo(PerfilUsuario.ADMIN);
@@ -97,9 +97,9 @@ class UsuarioServicePermissaoCriacaoTest {
         autenticarComo(PerfilUsuario.GERENTE);
         configurarCriacaoBemSucedida();
 
-        UsuarioCriacaoDTO dto = novoUsuarioDto(PerfilUsuario.FUNCIONARIO, "gerente-cria-funcionario@mail.com");
+        UsuarioCreateDTO dto = novoUsuarioDto(PerfilUsuario.FUNCIONARIO, "gerente-cria-funcionario@mail.com");
 
-        UsuarioRespostaDTO resposta = usuarioService.criar(dto);
+        UsuarioResponseDTO resposta = usuarioService.criar(dto);
 
         assertThat(resposta).isNotNull();
         assertThat(resposta.getPerfil()).isEqualTo(PerfilUsuario.FUNCIONARIO);
@@ -114,12 +114,12 @@ class UsuarioServicePermissaoCriacaoTest {
         autenticarComo(PerfilUsuario.GERENCIA_MATRIZ);
         configurarCriacaoBemSucedida();
 
-        UsuarioCriacaoDTO dto = novoUsuarioDto(
+        UsuarioCreateDTO dto = novoUsuarioDto(
                 perfilDesejado,
                 "matriz-cria-" + perfilDesejado.name().toLowerCase() + "@mail.com"
         );
 
-        UsuarioRespostaDTO resposta = usuarioService.criar(dto);
+        UsuarioResponseDTO resposta = usuarioService.criar(dto);
 
         assertThat(resposta).isNotNull();
         assertThat(resposta.getPerfil()).isEqualTo(perfilDesejado);
@@ -137,7 +137,7 @@ class UsuarioServicePermissaoCriacaoTest {
     void somenteAdminPodeCriarAdmin(PerfilUsuario perfilSolicitante) {
         autenticarComo(perfilSolicitante);
 
-        UsuarioCriacaoDTO dto = novoUsuarioDto(PerfilUsuario.ADMIN, "novo-admin@mail.com");
+        UsuarioCreateDTO dto = novoUsuarioDto(PerfilUsuario.ADMIN, "novo-admin@mail.com");
 
         assertThatThrownBy(() -> usuarioService.criar(dto))
                 .isInstanceOf(AccessDeniedException.class)
@@ -151,7 +151,7 @@ class UsuarioServicePermissaoCriacaoTest {
     void usuarioNaoAutenticadoNaoPodeCriarAdmin() {
         SecurityContextHolder.clearContext();
 
-        UsuarioCriacaoDTO dto = novoUsuarioDto(PerfilUsuario.ADMIN, "novo-admin-sem-auth@mail.com");
+        UsuarioCreateDTO dto = novoUsuarioDto(PerfilUsuario.ADMIN, "novo-admin-sem-auth@mail.com");
 
         assertThatThrownBy(() -> usuarioService.criar(dto))
                 .isInstanceOf(AccessDeniedException.class)
@@ -166,7 +166,7 @@ class UsuarioServicePermissaoCriacaoTest {
     void nenhumPerfilPodeCriarCliente(PerfilUsuario perfilSolicitante) {
         autenticarComo(perfilSolicitante);
 
-        UsuarioCriacaoDTO dto = new UsuarioCriacaoDTO(
+        UsuarioCreateDTO dto = new UsuarioCreateDTO(
                 "Cliente de Teste",
                 "novo-cliente@mail.com",
                 "Senha@123",
@@ -188,7 +188,7 @@ class UsuarioServicePermissaoCriacaoTest {
     void funcionarioNaoPodeCriarNenhumUsuario(PerfilUsuario perfilDesejado) {
         autenticarComo(PerfilUsuario.FUNCIONARIO);
 
-        UsuarioCriacaoDTO dto = novoUsuarioDto(
+        UsuarioCreateDTO dto = novoUsuarioDto(
                 perfilDesejado,
                 "funcionario-cria-" + perfilDesejado.name().toLowerCase() + "@mail.com"
         );
@@ -205,7 +205,7 @@ class UsuarioServicePermissaoCriacaoTest {
     void gerenteNaoPodeCriarGerenciaMatriz() {
         autenticarComo(PerfilUsuario.GERENTE);
 
-        UsuarioCriacaoDTO dto = novoUsuarioDto(PerfilUsuario.GERENCIA_MATRIZ, "gerente-cria-gerencia@mail.com");
+        UsuarioCreateDTO dto = novoUsuarioDto(PerfilUsuario.GERENCIA_MATRIZ, "gerente-cria-gerencia@mail.com");
 
         assertThatThrownBy(() -> usuarioService.criar(dto))
                 .isInstanceOf(AccessDeniedException.class)
@@ -224,7 +224,7 @@ class UsuarioServicePermissaoCriacaoTest {
         autenticarComo(PerfilUsuario.ADMIN);
         when(usuarioRepository.existsByEmail("duplicado@mail.com")).thenReturn(true);
 
-        UsuarioCriacaoDTO dto = novoUsuarioDto(PerfilUsuario.FUNCIONARIO, "duplicado@mail.com");
+        UsuarioCreateDTO dto = novoUsuarioDto(PerfilUsuario.FUNCIONARIO, "duplicado@mail.com");
 
         assertThatThrownBy(() -> usuarioService.criar(dto))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -238,7 +238,7 @@ class UsuarioServicePermissaoCriacaoTest {
         autenticarComo(PerfilUsuario.ADMIN);
         configurarCriacaoBemSucedida();
 
-        UsuarioCriacaoDTO dto = novoUsuarioDto(PerfilUsuario.FUNCIONARIO, "usuario@mail.com");
+        UsuarioCreateDTO dto = novoUsuarioDto(PerfilUsuario.FUNCIONARIO, "usuario@mail.com");
 
         usuarioService.criar(dto);
 
@@ -267,9 +267,9 @@ class UsuarioServicePermissaoCriacaoTest {
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
-    private UsuarioCriacaoDTO novoUsuarioDto(PerfilUsuario perfil, String email) {
+    private UsuarioCreateDTO novoUsuarioDto(PerfilUsuario perfil, String email) {
         Long lojaId = (perfil == PerfilUsuario.GERENTE || perfil == PerfilUsuario.FUNCIONARIO) ? 1L : null;
-        return new UsuarioCriacaoDTO(
+        return new UsuarioCreateDTO(
                 "Usuario de Teste",
                 email,
                 "Senha@123",

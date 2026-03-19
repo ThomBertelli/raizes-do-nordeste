@@ -1,8 +1,8 @@
 package com.raizesdonordeste.service;
 
-import com.raizesdonordeste.api.dto.pedido.CreatePedidoItemRequest;
-import com.raizesdonordeste.api.dto.pedido.CreatePedidoRequest;
-import com.raizesdonordeste.api.dto.pedido.PedidoRespostaDTO;
+import com.raizesdonordeste.api.dto.pedido.PedidoItemRequestDTO;
+import com.raizesdonordeste.api.dto.pedido.PedidoRequestDTO;
+import com.raizesdonordeste.api.dto.pedido.PedidoResponseDTO;
 import com.raizesdonordeste.config.UsuarioAutenticado;
 import com.raizesdonordeste.domain.enums.CanalPedido;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
@@ -95,7 +95,7 @@ class PedidoServiceTest {
         when(pedidoRepository.findAllWithRelacionamentos(pageable))
                 .thenReturn(new PageImpl<>(List.of(pedido1, pedido2), pageable, 2));
 
-        Page<PedidoRespostaDTO> resultado = pedidoService.listarPorLoja(null, pageable);
+        Page<PedidoResponseDTO> resultado = pedidoService.listarPorLoja(null, pageable);
 
         assertThat(resultado.getTotalElements()).isEqualTo(2);
         assertThat(resultado.getContent()).hasSize(2);
@@ -126,7 +126,7 @@ class PedidoServiceTest {
         when(pedidoRepository.findByLojaIdOrderByDataCriacaoDescComRelacionamentos(3L, pageable))
                 .thenReturn(new PageImpl<>(List.of(pedido), pageable, 1));
 
-        Page<PedidoRespostaDTO> resultado = pedidoService.listarPorLoja(null, pageable);
+        Page<PedidoResponseDTO> resultado = pedidoService.listarPorLoja(null, pageable);
 
         assertThat(resultado.getTotalElements()).isEqualTo(1);
         assertThat(resultado.getContent().get(0).getLojaId()).isEqualTo(3L);
@@ -192,8 +192,8 @@ class PedidoServiceTest {
     void clientePodeCriarPedido() {
         autenticarComo(10L, "cliente@teste.com", PerfilUsuario.CLIENTE, null);
 
-        CreatePedidoRequest request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
-                new CreatePedidoItemRequest(5L, 2)
+        PedidoRequestDTO request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
+                new PedidoItemRequestDTO(5L, 2)
         ));
 
         Loja loja = lojaExemplo(1L);
@@ -213,7 +213,7 @@ class PedidoServiceTest {
             return pedido;
         });
 
-        PedidoRespostaDTO resposta = pedidoService.criar(request);
+        PedidoResponseDTO resposta = pedidoService.criar(request);
 
         assertThat(resposta).isNotNull();
         assertThat(resposta.getStatusPedido()).isEqualTo(StatusPedido.CRIADO);
@@ -228,8 +228,8 @@ class PedidoServiceTest {
     void concorrenciaDeEstoqueNaoPermiteDoisPedidos() {
         autenticarComo(10L, "cliente@teste.com", PerfilUsuario.CLIENTE, null);
 
-        CreatePedidoRequest request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
-                new CreatePedidoItemRequest(5L, 2)
+        PedidoRequestDTO request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
+                new PedidoItemRequestDTO(5L, 2)
         ));
 
         Loja loja = lojaExemplo(1L);
@@ -249,7 +249,7 @@ class PedidoServiceTest {
             return pedido;
         });
 
-        PedidoRespostaDTO primeiraResposta = pedidoService.criar(request);
+        PedidoResponseDTO primeiraResposta = pedidoService.criar(request);
 
         assertThat(primeiraResposta).isNotNull();
         assertThat(estoque.getQuantidade()).isEqualTo(0);
@@ -267,8 +267,8 @@ class PedidoServiceTest {
     void naoDeveCriarPedidoSemCanalPedido() {
         autenticarComo(10L, "cliente@teste.com", PerfilUsuario.CLIENTE, null);
 
-        CreatePedidoRequest request = novoPedidoRequest(1L, null, List.of(
-                new CreatePedidoItemRequest(5L, 1)
+        PedidoRequestDTO request = novoPedidoRequest(1L, null, List.of(
+                new PedidoItemRequestDTO(5L, 1)
         ));
 
         assertThatThrownBy(() -> pedidoService.criar(request))
@@ -282,7 +282,7 @@ class PedidoServiceTest {
     void naoDeveCriarPedidoSemItens() {
         autenticarComo(10L, "cliente@teste.com", PerfilUsuario.CLIENTE, null);
 
-        CreatePedidoRequest request = novoPedidoRequest(1L, CanalPedido.APP, List.of());
+        PedidoRequestDTO request = novoPedidoRequest(1L, CanalPedido.APP, List.of());
 
         assertThatThrownBy(() -> pedidoService.criar(request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -295,8 +295,8 @@ class PedidoServiceTest {
     void naoDeveCriarPedidoComLojaInexistente() {
         autenticarComo(10L, "cliente@teste.com", PerfilUsuario.CLIENTE, null);
 
-        CreatePedidoRequest request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
-                new CreatePedidoItemRequest(5L, 1)
+        PedidoRequestDTO request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
+                new PedidoItemRequestDTO(5L, 1)
         ));
 
         when(lojaRepository.findById(1L)).thenReturn(Optional.empty());
@@ -312,8 +312,8 @@ class PedidoServiceTest {
     void naoDeveCriarPedidoComProdutoInexistente() {
         autenticarComo(10L, "cliente@teste.com", PerfilUsuario.CLIENTE, null);
 
-        CreatePedidoRequest request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
-                new CreatePedidoItemRequest(5L, 1)
+        PedidoRequestDTO request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
+                new PedidoItemRequestDTO(5L, 1)
         ));
 
         when(lojaRepository.findById(1L)).thenReturn(Optional.of(lojaExemplo(1L)));
@@ -331,8 +331,8 @@ class PedidoServiceTest {
     void naoDeveCriarPedidoComEstoqueInsuficiente() {
         autenticarComo(10L, "cliente@teste.com", PerfilUsuario.CLIENTE, null);
 
-        CreatePedidoRequest request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
-                new CreatePedidoItemRequest(5L, 3)
+        PedidoRequestDTO request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
+                new PedidoItemRequestDTO(5L, 3)
         ));
 
         Loja loja = lojaExemplo(1L);
@@ -355,8 +355,8 @@ class PedidoServiceTest {
     void naoDeveCriarPedidoSemAutenticacao() {
         SecurityContextHolder.clearContext();
 
-        CreatePedidoRequest request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
-                new CreatePedidoItemRequest(5L, 1)
+        PedidoRequestDTO request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
+                new PedidoItemRequestDTO(5L, 1)
         ));
 
         assertThatThrownBy(() -> pedidoService.criar(request))
@@ -369,8 +369,8 @@ class PedidoServiceTest {
     void apenasClientePodeCriarPedido() {
         autenticarComo(2L, "gerente@teste.com", PerfilUsuario.GERENTE, 3L);
 
-        CreatePedidoRequest request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
-                new CreatePedidoItemRequest(5L, 1)
+        PedidoRequestDTO request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
+                new PedidoItemRequestDTO(5L, 1)
         ));
 
         assertThatThrownBy(() -> pedidoService.criar(request))
@@ -393,7 +393,7 @@ class PedidoServiceTest {
         when(pedidoRepository.findByClienteIdOrderByDataCriacaoDescComRelacionamentos(10L, pageable))
                 .thenReturn(new PageImpl<>(List.of(pedido), pageable, 1));
 
-        Page<PedidoRespostaDTO> resultado = pedidoService.listarMeusPedidos(pageable);
+        Page<PedidoResponseDTO> resultado = pedidoService.listarMeusPedidos(pageable);
 
         assertThat(resultado.getTotalElements()).isEqualTo(1);
         assertThat(resultado.getContent().get(0).getClienteId()).isEqualTo(10L);
@@ -425,7 +425,7 @@ class PedidoServiceTest {
         Pedido pedido = pedidoExemplo(1L, lojaExemplo(2L), clienteExemplo(10L));
         when(pedidoRepository.findByIdWithRelacionamentos(1L)).thenReturn(Optional.of(pedido));
 
-        PedidoRespostaDTO resultado = pedidoService.buscarPorId(1L);
+        PedidoResponseDTO resultado = pedidoService.buscarPorId(1L);
 
         assertThat(resultado.getId()).isEqualTo(1L);
         verify(pedidoRepository).findByIdWithRelacionamentos(1L);
@@ -439,7 +439,7 @@ class PedidoServiceTest {
         Pedido pedido = pedidoExemplo(1L, lojaExemplo(3L), clienteExemplo(10L));
         when(pedidoRepository.findByIdWithRelacionamentos(1L)).thenReturn(Optional.of(pedido));
 
-        PedidoRespostaDTO resultado = pedidoService.buscarPorId(1L);
+        PedidoResponseDTO resultado = pedidoService.buscarPorId(1L);
 
         assertThat(resultado.getId()).isEqualTo(1L);
         verify(pedidoRepository).findByIdWithRelacionamentos(1L);
@@ -466,7 +466,7 @@ class PedidoServiceTest {
         Pedido pedido = pedidoExemplo(1L, lojaExemplo(1L), clienteExemplo(10L));
         when(pedidoRepository.findByIdWithRelacionamentos(1L)).thenReturn(Optional.of(pedido));
 
-        PedidoRespostaDTO resultado = pedidoService.buscarPorId(1L);
+        PedidoResponseDTO resultado = pedidoService.buscarPorId(1L);
 
         assertThat(resultado.getId()).isEqualTo(1L);
         verify(pedidoRepository).findByIdWithRelacionamentos(1L);
@@ -570,8 +570,8 @@ class PedidoServiceTest {
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
-    private CreatePedidoRequest novoPedidoRequest(Long lojaId, CanalPedido canalPedido, List<CreatePedidoItemRequest> itens) {
-        return new CreatePedidoRequest(lojaId, canalPedido, itens);
+    private PedidoRequestDTO novoPedidoRequest(Long lojaId, CanalPedido canalPedido, List<PedidoItemRequestDTO> itens) {
+        return new PedidoRequestDTO(lojaId, canalPedido, itens);
     }
 }
 

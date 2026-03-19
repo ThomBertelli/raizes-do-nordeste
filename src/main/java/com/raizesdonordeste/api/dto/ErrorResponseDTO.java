@@ -9,7 +9,7 @@ import java.util.List;
 
 @Data
 @Builder
-public class ErrorResponse {
+public class ErrorResponseDTO {
     private int status;
     private String erro;
     private String mensagem;

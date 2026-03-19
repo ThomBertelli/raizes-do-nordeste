@@ -1,8 +1,8 @@
 package com.raizesdonordeste.api.controller;
 
-import com.raizesdonordeste.api.dto.estoque.EstoqueRespostaDTO;
-import com.raizesdonordeste.api.dto.estoque.MovimentacaoEstoqueRespostaDTO;
-import com.raizesdonordeste.api.dto.estoque.MovimentacaoEstoqueRequisicaoDTO;
+import com.raizesdonordeste.api.dto.estoque.EstoqueRequestDTO;
+import com.raizesdonordeste.api.dto.estoque.MovimentacaoEstoqueResponseDTO;
+import com.raizesdonordeste.api.dto.estoque.MovimentacaoEstoqueRequestDTO;
 import com.raizesdonordeste.domain.model.Estoque;
 import com.raizesdonordeste.domain.model.MovimentacaoEstoque;
 import com.raizesdonordeste.service.EstoqueService;
@@ -28,23 +28,23 @@ public class EstoqueController {
     private final EstoqueService estoqueService;
 
     @GetMapping
-    public ResponseEntity<Page<EstoqueRespostaDTO>> listarEstoques(
+    public ResponseEntity<Page<EstoqueRequestDTO>> listarEstoques(
             @RequestParam(required = false) Long lojaId,
             @PageableDefault(size = 20, sort = "dataAtualizacao") Pageable pageable) {
 
-        Page<EstoqueRespostaDTO> resposta = estoqueService.listarEstoquesPorLoja(lojaId, pageable)
+        Page<EstoqueRequestDTO> resposta = estoqueService.listarEstoquesPorLoja(lojaId, pageable)
                 .map(this::toEstoqueRespostaDTO);
 
         return ResponseEntity.ok(resposta);
     }
 
     @GetMapping("/movimentacoes")
-    public ResponseEntity<Page<MovimentacaoEstoqueRespostaDTO>> listarMovimentacoes(
+    public ResponseEntity<Page<MovimentacaoEstoqueResponseDTO>> listarMovimentacoes(
             @RequestParam(required = false) Long lojaId,
             @RequestParam(required = false) Long produtoId,
             @PageableDefault(size = 20, sort = "dataCriacao") Pageable pageable) {
 
-        Page<MovimentacaoEstoqueRespostaDTO> resposta = estoqueService
+        Page<MovimentacaoEstoqueResponseDTO> resposta = estoqueService
                 .listarMovimentacoesPorLoja(lojaId, produtoId, pageable)
                 .map(this::toMovimentacaoRespostaDTO);
 
@@ -52,9 +52,9 @@ public class EstoqueController {
     }
 
     @PostMapping("/entrada")
-    public ResponseEntity<EstoqueRespostaDTO> registrarEntrada(
+    public ResponseEntity<EstoqueRequestDTO> registrarEntrada(
             @RequestParam(required = false) Long lojaId,
-            @Valid @RequestBody MovimentacaoEstoqueRequisicaoDTO dto) {
+            @Valid @RequestBody MovimentacaoEstoqueRequestDTO dto) {
 
         Estoque estoque = estoqueService.registrarEntrada(lojaId, dto.getProdutoId(), dto.getQuantidade(), dto.getMotivo());
 
@@ -62,17 +62,17 @@ public class EstoqueController {
     }
 
     @PostMapping("/saida")
-    public ResponseEntity<EstoqueRespostaDTO> registrarSaida(
+    public ResponseEntity<EstoqueRequestDTO> registrarSaida(
             @RequestParam(required = false) Long lojaId,
-            @Valid @RequestBody MovimentacaoEstoqueRequisicaoDTO dto) {
+            @Valid @RequestBody MovimentacaoEstoqueRequestDTO dto) {
 
         Estoque estoque = estoqueService.registrarSaida(lojaId, dto.getProdutoId(), dto.getQuantidade(), dto.getMotivo());
 
         return ResponseEntity.status(HttpStatus.OK).body(toEstoqueRespostaDTO(estoque));
     }
 
-    private EstoqueRespostaDTO toEstoqueRespostaDTO(Estoque estoque) {
-        return EstoqueRespostaDTO.builder()
+    private EstoqueRequestDTO toEstoqueRespostaDTO(Estoque estoque) {
+        return EstoqueRequestDTO.builder()
                 .id(estoque.getId())
                 .lojaId(estoque.getLoja().getId())
                 .lojaNome(estoque.getLoja().getNome())
@@ -85,8 +85,8 @@ public class EstoqueController {
                 .build();
     }
 
-    private MovimentacaoEstoqueRespostaDTO toMovimentacaoRespostaDTO(MovimentacaoEstoque movimentacao) {
-        return MovimentacaoEstoqueRespostaDTO.builder()
+    private MovimentacaoEstoqueResponseDTO toMovimentacaoRespostaDTO(MovimentacaoEstoque movimentacao) {
+        return MovimentacaoEstoqueResponseDTO.builder()
                 .id(movimentacao.getId())
                 .estoqueId(movimentacao.getEstoque().getId())
                 .lojaId(movimentacao.getEstoque().getLoja().getId())

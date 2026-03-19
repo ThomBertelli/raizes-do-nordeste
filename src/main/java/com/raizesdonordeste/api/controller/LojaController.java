@@ -1,8 +1,8 @@
 package com.raizesdonordeste.api.controller;
 
-import com.raizesdonordeste.api.dto.loja.LojaAtualizacaoDTO;
-import com.raizesdonordeste.api.dto.loja.LojaCriacaoDTO;
-import com.raizesdonordeste.api.dto.loja.LojaRespostaDTO;
+import com.raizesdonordeste.api.dto.loja.LojaUpdateDTO;
+import com.raizesdonordeste.api.dto.loja.LojaCreateDTO;
+import com.raizesdonordeste.api.dto.loja.LojaResponseDTO;
 import com.raizesdonordeste.service.LojaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,36 +21,36 @@ public class LojaController {
     private final LojaService lojaService;
 
     @PostMapping
-    public ResponseEntity<LojaRespostaDTO> criar(@Valid @RequestBody LojaCriacaoDTO dto) {
+    public ResponseEntity<LojaResponseDTO> criar(@Valid @RequestBody LojaCreateDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(lojaService.criar(dto));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<LojaRespostaDTO> atualizar(
+    public ResponseEntity<LojaResponseDTO> atualizar(
             @PathVariable Long id,
-            @Valid @RequestBody LojaAtualizacaoDTO dto) {
+            @Valid @RequestBody LojaUpdateDTO dto) {
         return ResponseEntity.ok(lojaService.atualizar(id, dto));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<LojaRespostaDTO> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<LojaResponseDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(lojaService.buscarPorId(id));
     }
 
     @GetMapping
-    public ResponseEntity<Page<LojaRespostaDTO>> listarTodos(
+    public ResponseEntity<Page<LojaResponseDTO>> listarTodos(
             @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
         return ResponseEntity.ok(lojaService.listarTodos(pageable));
     }
 
     @GetMapping("/ativas")
-    public ResponseEntity<Page<LojaRespostaDTO>> listarAtivas(
+    public ResponseEntity<Page<LojaResponseDTO>> listarAtivas(
             @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
         return ResponseEntity.ok(lojaService.buscarAtivas(pageable));
     }
 
     @GetMapping("/buscar")
-    public ResponseEntity<Page<LojaRespostaDTO>> buscarPorNome(
+    public ResponseEntity<Page<LojaResponseDTO>> buscarPorNome(
             @RequestParam String nome,
             @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
         return ResponseEntity.ok(lojaService.buscarPorNome(nome, pageable));

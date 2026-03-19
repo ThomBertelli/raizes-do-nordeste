@@ -1,12 +1,11 @@
 package com.raizesdonordeste.service;
 
-import com.raizesdonordeste.api.dto.produto.ProdutoAtualizacaoDTO;
-import com.raizesdonordeste.api.dto.produto.ProdutoCriacaoDTO;
-import com.raizesdonordeste.api.dto.produto.ProdutoRespostaDTO;
+import com.raizesdonordeste.api.dto.produto.ProdutoUpdateDTO;
+import com.raizesdonordeste.api.dto.produto.ProdutoCreateDTO;
+import com.raizesdonordeste.api.dto.produto.ProdutoResponseDTO;
 import com.raizesdonordeste.domain.model.Produto;
 import com.raizesdonordeste.domain.repository.ProdutoRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,7 +49,7 @@ class ProdutoServiceTest {
     @DisplayName("Deve criar produto com sucesso")
     void deveCriarProdutoComSucesso() {
         // Arrange
-        ProdutoCriacaoDTO dto = novoProdutoCriacaoDTO();
+        ProdutoCreateDTO dto = novoProdutoCriacaoDTO();
         when(produtoRepository.existsByNome(dto.getNome())).thenReturn(false);
         when(produtoRepository.save(any(Produto.class))).thenAnswer(inv -> {
             Produto p = inv.getArgument(0, Produto.class);
@@ -60,7 +59,7 @@ class ProdutoServiceTest {
             return p;
         });
 
-        ProdutoRespostaDTO resposta = produtoService.criar(dto);
+        ProdutoResponseDTO resposta = produtoService.criar(dto);
 
         assertThat(resposta).isNotNull();
         assertThat(resposta.getId()).isEqualTo(1L);
@@ -75,7 +74,7 @@ class ProdutoServiceTest {
     @DisplayName("Produto deve ser criado como ativo por padrão")
     void produtoDeveSerciadoComoAtivoPorPadrao() {
         // Arrange
-        ProdutoCriacaoDTO dto = novoProdutoCriacaoDTO();
+        ProdutoCreateDTO dto = novoProdutoCriacaoDTO();
         when(produtoRepository.existsByNome(anyString())).thenReturn(false);
         when(produtoRepository.save(any(Produto.class))).thenAnswer(inv -> {
             Produto p = inv.getArgument(0, Produto.class);
@@ -84,7 +83,7 @@ class ProdutoServiceTest {
         });
 
         // Act
-        ProdutoRespostaDTO resposta = produtoService.criar(dto);
+        ProdutoResponseDTO resposta = produtoService.criar(dto);
 
         // Assert
         assertThat(resposta.isAtivo()).isTrue();
@@ -95,7 +94,7 @@ class ProdutoServiceTest {
     void deveCriarProdutoComPrecoValido() {
         // Arrange
         BigDecimal preco = BigDecimal.valueOf(50.00);
-        ProdutoCriacaoDTO dto = new ProdutoCriacaoDTO("Produto Premium", "Descrição", preco);
+        ProdutoCreateDTO dto = new ProdutoCreateDTO("Produto Premium", "Descrição", preco);
         when(produtoRepository.existsByNome(anyString())).thenReturn(false);
         when(produtoRepository.save(any(Produto.class))).thenAnswer(inv -> {
             Produto p = inv.getArgument(0, Produto.class);
@@ -104,7 +103,7 @@ class ProdutoServiceTest {
         });
 
         // Act
-        ProdutoRespostaDTO resposta = produtoService.criar(dto);
+        ProdutoResponseDTO resposta = produtoService.criar(dto);
 
         // Assert
         assertThat(resposta.getPreco()).isEqualByComparingTo(preco);
@@ -119,7 +118,7 @@ class ProdutoServiceTest {
     @DisplayName("Não deve criar produto com nome duplicado")
     void naoDeveCriarProdutoComNomeDuplicado() {
         // Arrange
-        ProdutoCriacaoDTO dto = novoProdutoCriacaoDTO();
+        ProdutoCreateDTO dto = novoProdutoCriacaoDTO();
         when(produtoRepository.existsByNome(dto.getNome())).thenReturn(true);
 
         // Act & Assert
@@ -140,13 +139,13 @@ class ProdutoServiceTest {
     void deveAtualizarProdutoComSucesso() {
         // Arrange
         Produto produtoExistente = produtoExistente();
-        ProdutoAtualizacaoDTO dto = new ProdutoAtualizacaoDTO("Novo Nome", "Nova Descrição", BigDecimal.valueOf(150.00));
+        ProdutoUpdateDTO dto = new ProdutoUpdateDTO("Novo Nome", "Nova Descrição", BigDecimal.valueOf(150.00));
         when(produtoRepository.findById(1L)).thenReturn(Optional.of(produtoExistente));
         when(produtoRepository.existsByNome("Novo Nome")).thenReturn(false);
         when(produtoRepository.save(any(Produto.class))).thenAnswer(inv -> inv.getArgument(0, Produto.class));
 
         // Act
-        ProdutoRespostaDTO resposta = produtoService.atualizar(1L, dto);
+        ProdutoResponseDTO resposta = produtoService.atualizar(1L, dto);
 
         // Assert
         assertThat(resposta.getNome()).isEqualTo("Novo Nome");
@@ -160,13 +159,13 @@ class ProdutoServiceTest {
     void deveAtualizarApenasNome() {
         // Arrange
         Produto produtoExistente = produtoExistente();
-        ProdutoAtualizacaoDTO dto = new ProdutoAtualizacaoDTO("Novo Nome", null, null);
+        ProdutoUpdateDTO dto = new ProdutoUpdateDTO("Novo Nome", null, null);
         when(produtoRepository.findById(1L)).thenReturn(Optional.of(produtoExistente));
         when(produtoRepository.existsByNome("Novo Nome")).thenReturn(false);
         when(produtoRepository.save(any(Produto.class))).thenAnswer(inv -> inv.getArgument(0, Produto.class));
 
         // Act
-        ProdutoRespostaDTO resposta = produtoService.atualizar(1L, dto);
+        ProdutoResponseDTO resposta = produtoService.atualizar(1L, dto);
 
         // Assert
         assertThat(resposta.getNome()).isEqualTo("Novo Nome");
@@ -180,12 +179,12 @@ class ProdutoServiceTest {
     void deveAtualizarApenasPreco() {
         // Arrange
         Produto produtoExistente = produtoExistente();
-        ProdutoAtualizacaoDTO dto = new ProdutoAtualizacaoDTO(null, null, BigDecimal.valueOf(199.99));
+        ProdutoUpdateDTO dto = new ProdutoUpdateDTO(null, null, BigDecimal.valueOf(199.99));
         when(produtoRepository.findById(1L)).thenReturn(Optional.of(produtoExistente));
         when(produtoRepository.save(any(Produto.class))).thenAnswer(inv -> inv.getArgument(0, Produto.class));
 
         // Act
-        ProdutoRespostaDTO resposta = produtoService.atualizar(1L, dto);
+        ProdutoResponseDTO resposta = produtoService.atualizar(1L, dto);
 
         // Assert
         assertThat(resposta.getNome()).isEqualTo("Produto Original");
@@ -202,7 +201,7 @@ class ProdutoServiceTest {
     @DisplayName("Não deve atualizar produto inexistente")
     void naoDeveAtualizarProdutoInexistente() {
         // Arrange
-        ProdutoAtualizacaoDTO dto = new ProdutoAtualizacaoDTO("Novo Nome", null, null);
+        ProdutoUpdateDTO dto = new ProdutoUpdateDTO("Novo Nome", null, null);
         when(produtoRepository.findById(99L)).thenReturn(Optional.empty());
 
         // Act & Assert
@@ -225,7 +224,7 @@ class ProdutoServiceTest {
         when(produtoRepository.findById(1L)).thenReturn(Optional.of(produto));
 
         // Act
-        ProdutoRespostaDTO resposta = produtoService.buscarPorId(1L);
+        ProdutoResponseDTO resposta = produtoService.buscarPorId(1L);
 
         // Assert
         assertThat(resposta).isNotNull();
@@ -243,7 +242,7 @@ class ProdutoServiceTest {
         when(produtoRepository.findAll(pageable)).thenReturn(page);
 
         // Act
-        Page<ProdutoRespostaDTO> resposta = produtoService.listarTodos(pageable);
+        Page<ProdutoResponseDTO> resposta = produtoService.listarTodos(pageable);
 
         // Assert
         assertThat(resposta).isNotEmpty();
@@ -263,7 +262,7 @@ class ProdutoServiceTest {
         when(produtoRepository.findByAtivo(true, pageable)).thenReturn(page);
 
         // Act
-        Page<ProdutoRespostaDTO> resposta = produtoService.buscarAtivos(pageable);
+        Page<ProdutoResponseDTO> resposta = produtoService.buscarAtivos(pageable);
 
         // Assert
         assertThat(resposta).isNotEmpty();
@@ -281,7 +280,7 @@ class ProdutoServiceTest {
         when(produtoRepository.findByNomeContainingIgnoreCase("Original", pageable)).thenReturn(page);
 
         // Act
-        Page<ProdutoRespostaDTO> resposta = produtoService.buscarPorNome("Original", pageable);
+        Page<ProdutoResponseDTO> resposta = produtoService.buscarPorNome("Original", pageable);
 
         // Assert
         assertThat(resposta).isNotEmpty();
@@ -299,7 +298,7 @@ class ProdutoServiceTest {
         when(produtoRepository.findByDescricaoContainingIgnoreCase("Descrição", pageable)).thenReturn(page);
 
         // Act
-        Page<ProdutoRespostaDTO> resposta = produtoService.buscarPorDescricao("Descrição", pageable);
+        Page<ProdutoResponseDTO> resposta = produtoService.buscarPorDescricao("Descrição", pageable);
 
         // Assert
         assertThat(resposta).isNotEmpty();
@@ -319,7 +318,7 @@ class ProdutoServiceTest {
         when(produtoRepository.findByPrecoBetween(min, max, pageable)).thenReturn(page);
 
         // Act
-        Page<ProdutoRespostaDTO> resposta = produtoService.buscarPorFaixaDePreco(min, max, pageable);
+        Page<ProdutoResponseDTO> resposta = produtoService.buscarPorFaixaDePreco(min, max, pageable);
 
         // Assert
         assertThat(resposta).isNotEmpty();
@@ -351,7 +350,7 @@ class ProdutoServiceTest {
         when(produtoRepository.findByNomeContainingIgnoreCase("Inexistente", pageable)).thenReturn(page);
 
         // Act
-        Page<ProdutoRespostaDTO> resposta = produtoService.buscarPorNome("Inexistente", pageable);
+        Page<ProdutoResponseDTO> resposta = produtoService.buscarPorNome("Inexistente", pageable);
 
         // Assert
         assertThat(resposta).isEmpty();
@@ -461,12 +460,12 @@ class ProdutoServiceTest {
     void deveManterMesmoNomeAoAtualizarSemFornecerNovoNome() {
         // Arrange
         Produto produto = produtoExistente();
-        ProdutoAtualizacaoDTO dto = new ProdutoAtualizacaoDTO(null, "Nova Desc", null);
+        ProdutoUpdateDTO dto = new ProdutoUpdateDTO(null, "Nova Desc", null);
         when(produtoRepository.findById(1L)).thenReturn(Optional.of(produto));
         when(produtoRepository.save(any(Produto.class))).thenAnswer(inv -> inv.getArgument(0, Produto.class));
 
         // Act
-        ProdutoRespostaDTO resposta = produtoService.atualizar(1L, dto);
+        ProdutoResponseDTO resposta = produtoService.atualizar(1L, dto);
 
         // Assert
         assertThat(resposta.getNome()).isEqualTo("Produto Original");
@@ -478,12 +477,12 @@ class ProdutoServiceTest {
     void deveValidarQueNulosNaoAfetamAtualizacao() {
         // Arrange
         Produto produto = produtoExistente();
-        ProdutoAtualizacaoDTO dto = new ProdutoAtualizacaoDTO(null, null, null);
+        ProdutoUpdateDTO dto = new ProdutoUpdateDTO(null, null, null);
         when(produtoRepository.findById(1L)).thenReturn(Optional.of(produto));
         when(produtoRepository.save(any(Produto.class))).thenAnswer(inv -> inv.getArgument(0, Produto.class));
 
         // Act
-        ProdutoRespostaDTO resposta = produtoService.atualizar(1L, dto);
+        ProdutoResponseDTO resposta = produtoService.atualizar(1L, dto);
 
         // Assert
         assertThat(resposta.getNome()).isEqualTo("Produto Original");
@@ -499,7 +498,7 @@ class ProdutoServiceTest {
         when(produtoRepository.findById(1L)).thenReturn(Optional.of(produto));
 
         // Act
-        ProdutoRespostaDTO resposta = produtoService.buscarPorId(1L);
+        ProdutoResponseDTO resposta = produtoService.buscarPorId(1L);
 
         // Assert
         assertThat(resposta.getId()).isEqualTo(produto.getId());
@@ -513,8 +512,8 @@ class ProdutoServiceTest {
     // Helpers
     // -------------------------------------------------------------------------
 
-    private ProdutoCriacaoDTO novoProdutoCriacaoDTO() {
-        return new ProdutoCriacaoDTO(
+    private ProdutoCreateDTO novoProdutoCriacaoDTO() {
+        return new ProdutoCreateDTO(
                 "Produto Teste",
                 "Descrição do Produto",
                 BigDecimal.valueOf(99.99)

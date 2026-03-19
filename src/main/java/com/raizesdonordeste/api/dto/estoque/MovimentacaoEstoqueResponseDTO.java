@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class MovimentacaoEstoqueRespostaDTO {
+public class MovimentacaoEstoqueResponseDTO {
 
     private Long id;
     private Long estoqueId;
