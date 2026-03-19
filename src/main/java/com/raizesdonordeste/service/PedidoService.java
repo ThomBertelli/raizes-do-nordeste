@@ -19,9 +19,6 @@ import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,10 +35,11 @@ public class PedidoService {
     private final ProdutoRepository produtoRepository;
     private final EstoqueRepository estoqueRepository;
     private final UsuarioRepository usuarioRepository;
+    private final SecurityContextService securityContextService;
 
     @Transactional(readOnly = true)
     public Page<PedidoResponseDTO> listarPorLoja(Long lojaId, Pageable pageable) {
-        UsuarioAutenticado principal = obterPrincipalAutenticado();
+        UsuarioAutenticado principal = securityContextService.getRequiredPrincipal();
         Long lojaAutorizada = pedidoAuthorization.podeListarPedidos(principal, lojaId);
 
         Page<Pedido> paginaPedidos;
@@ -56,7 +54,7 @@ public class PedidoService {
 
     @Transactional(readOnly = true)
     public Page<PedidoResponseDTO> listarMeusPedidos(Pageable pageable) {
-        UsuarioAutenticado principal = obterPrincipalAutenticado();
+        UsuarioAutenticado principal = securityContextService.getRequiredPrincipal();
 
         pedidoAuthorization.exigirCliente(principal);
 
@@ -67,7 +65,7 @@ public class PedidoService {
 
     @Transactional(readOnly = true)
     public PedidoResponseDTO buscarPorId(Long id) {
-        UsuarioAutenticado principal = obterPrincipalAutenticado();
+        UsuarioAutenticado principal = securityContextService.getRequiredPrincipal();
         Pedido pedido = buscarEntidade(id);
 
         pedidoAuthorization.podeVisualizarPedido(principal, pedido);
@@ -79,7 +77,7 @@ public class PedidoService {
     public PedidoResponseDTO criar(PedidoRequestDTO request) {
         validarRequestCriacao(request);
 
-        UsuarioAutenticado principal = obterPrincipalAutenticado();
+        UsuarioAutenticado principal = securityContextService.getRequiredPrincipal();
         pedidoAuthorization.exigirCliente(principal);
 
         Loja loja = lojaRepository.findById(request.getLojaId())
@@ -150,20 +148,6 @@ public class PedidoService {
         }
     }
 
-    private UsuarioAutenticado obterPrincipalAutenticado() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        if (auth == null || !auth.isAuthenticated()) {
-            throw new AccessDeniedException("Usuário não autenticado");
-        }
-
-        Object principal = auth.getPrincipal();
-        if (!(principal instanceof UsuarioAutenticado usuarioAutenticado)) {
-            throw new AccessDeniedException("Principal autenticado inválido");
-        }
-
-        return usuarioAutenticado;
-    }
 
     private PedidoResponseDTO toDTO(Pedido pedido) {
         return PedidoResponseDTO.builder()
