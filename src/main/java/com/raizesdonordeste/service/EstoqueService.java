@@ -20,8 +20,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +33,7 @@ public class EstoqueService {
     private final LojaRepository lojaRepository;
     private final ProdutoRepository produtoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final SecurityContextService securityContextService;
 
     @Transactional
     public Estoque registrarEntrada(Long lojaId, Long produtoId, Integer quantidade, String motivo) {
@@ -191,17 +190,6 @@ public class EstoqueService {
     }
 
     private UsuarioAutenticado obterUsuarioAutenticado() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new AccessDeniedException("Usuário não autenticado");
-        }
-
-        Object principal = authentication.getPrincipal();
-        if (!(principal instanceof UsuarioAutenticado usuarioAutenticado)) {
-            throw new AccessDeniedException("Principal autenticado inválido para acesso de estoque");
-        }
-
-        return usuarioAutenticado;
+        return securityContextService.getRequiredPrincipal();
     }
 }

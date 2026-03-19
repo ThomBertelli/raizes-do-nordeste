@@ -38,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -60,6 +61,9 @@ class EstoqueServiceTest {
 
     @Mock
     private UsuarioRepository usuarioRepository;
+
+    @Mock
+    private SecurityContextService securityContextService;
 
     @InjectMocks
     private EstoqueService estoqueService;
@@ -438,6 +442,8 @@ class EstoqueServiceTest {
         UsernamePasswordAuthenticationToken auth =
                 new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(auth);
+        lenient().when(securityContextService.getRequiredPrincipal()).thenReturn(principal);
+        lenient().when(securityContextService.getRequiredPerfil()).thenReturn(perfil);
     }
 }
 
