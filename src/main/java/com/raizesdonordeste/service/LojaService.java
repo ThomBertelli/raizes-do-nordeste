@@ -3,7 +3,6 @@ package com.raizesdonordeste.service;
 import com.raizesdonordeste.api.dto.loja.LojaUpdateDTO;
 import com.raizesdonordeste.api.dto.loja.LojaCreateDTO;
 import com.raizesdonordeste.api.dto.loja.LojaResponseDTO;
-import com.raizesdonordeste.config.UsuarioAutenticado;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.repository.LojaRepository;
@@ -13,8 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class LojaService {
 
     private final LojaRepository lojaRepository;
+    private final SecurityContextService securityContextService;
 
     @Transactional
     public LojaResponseDTO criar(LojaCreateDTO dto) {
@@ -43,8 +41,8 @@ public class LojaService {
         log.info("Loja criada: lojaId={}, ativa={}, actorId={}, actorPerfil={}",
                 salva.getId(),
                 salva.isAtiva(),
-                obterIdAtor(),
-                obterPerfilAtor());
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
 
         return toDTO(salva);
     }
@@ -77,8 +75,8 @@ public class LojaService {
         log.info("Loja atualizada: lojaId={}, ativa={}, actorId={}, actorPerfil={}",
                 atualizada.getId(),
                 atualizada.isAtiva(),
-                obterIdAtor(),
-                obterPerfilAtor());
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
 
         return toDTO(atualizada);
     }
@@ -109,7 +107,10 @@ public class LojaService {
         Loja loja = buscarEntidade(id);
         loja.setAtiva(true);
         lojaRepository.save(loja);
-        log.info("Loja ativada: lojaId={}, actorId={}, actorPerfil={}", id, obterIdAtor(), obterPerfilAtor());
+        log.info("Loja ativada: lojaId={}, actorId={}, actorPerfil={}",
+                id,
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
     }
 
     @Transactional
@@ -118,7 +119,10 @@ public class LojaService {
         Loja loja = buscarEntidade(id);
         loja.setAtiva(false);
         lojaRepository.save(loja);
-        log.info("Loja desativada: lojaId={}, actorId={}, actorPerfil={}", id, obterIdAtor(), obterPerfilAtor());
+        log.info("Loja desativada: lojaId={}, actorId={}, actorPerfil={}",
+                id,
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
     }
 
     @Transactional
@@ -128,7 +132,10 @@ public class LojaService {
             throw new RecursoNaoEncontradoException("Loja não encontrada");
         }
         lojaRepository.deleteById(id);
-        log.info("Loja deletada: lojaId={}, actorId={}, actorPerfil={}", id, obterIdAtor(), obterPerfilAtor());
+        log.info("Loja deletada: lojaId={}, actorId={}, actorPerfil={}",
+                id,
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
     }
 
     private Loja buscarEntidade(Long id) {
@@ -149,48 +156,9 @@ public class LojaService {
     }
 
     private void validarAutorizacaoGerenciaMatriz() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new AccessDeniedException("Usuário não autenticado");
-        }
-
-        boolean temPermissao = authentication.getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ROLE_" + PerfilUsuario.GERENCIA_MATRIZ.name()));
-
-        if (!temPermissao) {
+        PerfilUsuario perfil = securityContextService.getRequiredPerfil();
+        if (perfil != PerfilUsuario.GERENCIA_MATRIZ) {
             throw new AccessDeniedException("Usuário não tem permissão para realizar esta operação");
         }
-    }
-
-    private Long obterIdAtor() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return null;
-        }
-        Object principal = authentication.getPrincipal();
-        if (principal instanceof UsuarioAutenticado usuarioAutenticado) {
-            return usuarioAutenticado.getId();
-        }
-        return null;
-    }
-
-    private PerfilUsuario obterPerfilAtor() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return null;
-        }
-        Object principal = authentication.getPrincipal();
-        if (principal instanceof UsuarioAutenticado usuarioAutenticado) {
-            return usuarioAutenticado.getPerfil();
-        }
-        return authentication.getAuthorities().stream()
-                .map(authority -> authority.getAuthority())
-                .filter(java.util.Objects::nonNull)
-                .filter(authority -> authority.startsWith("ROLE_"))
-                .map(authority -> authority.substring(5))
-                .findFirst()
-                .map(PerfilUsuario::valueOf)
-                .orElse(null);
     }
 }

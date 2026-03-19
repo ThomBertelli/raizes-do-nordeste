@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,6 +38,9 @@ class LojaServiceTest {
 
     @Mock
     private LojaRepository lojaRepository;
+
+    @Mock
+    private SecurityContextService securityContextService;
 
     @InjectMocks
     private LojaService lojaService;
@@ -295,6 +299,9 @@ class LojaServiceTest {
         UsernamePasswordAuthenticationToken auth =
                 new UsernamePasswordAuthenticationToken("tester", "senha", List.of(() -> "ROLE_" + perfil.name()));
         SecurityContextHolder.getContext().setAuthentication(auth);
+        when(securityContextService.getRequiredPerfil()).thenReturn(perfil);
+        lenient().when(securityContextService.getActorIdOrNull()).thenReturn(null);
+        lenient().when(securityContextService.getActorPerfilOrNull()).thenReturn(perfil);
     }
 
     private LojaCreateDTO novaLojaCriacaoDTO() {
@@ -311,5 +318,4 @@ class LojaServiceTest {
                 .build();
     }
 }
-
 
