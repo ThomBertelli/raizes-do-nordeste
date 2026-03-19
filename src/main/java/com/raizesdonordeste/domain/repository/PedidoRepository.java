@@ -16,6 +16,21 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
 
     Optional<Pedido> findById(Long id);
 
+    @Query(value = "SELECT p FROM Pedido p JOIN FETCH p.loja JOIN FETCH p.cliente",
+            countQuery = "SELECT COUNT(p) FROM Pedido p")
+    Page<Pedido> findAllWithRelacionamentos(Pageable pageable);
+
+    @Query(value = "SELECT p FROM Pedido p JOIN FETCH p.loja JOIN FETCH p.cliente WHERE p.loja.id = :lojaId ORDER BY p.dataCriacao DESC",
+            countQuery = "SELECT COUNT(p) FROM Pedido p WHERE p.loja.id = :lojaId")
+    Page<Pedido> findByLojaIdOrderByDataCriacaoDescComRelacionamentos(@Param("lojaId") Long lojaId, Pageable pageable);
+
+    @Query(value = "SELECT p FROM Pedido p JOIN FETCH p.loja JOIN FETCH p.cliente WHERE p.cliente.id = :clienteId ORDER BY p.dataCriacao DESC",
+            countQuery = "SELECT COUNT(p) FROM Pedido p WHERE p.cliente.id = :clienteId")
+    Page<Pedido> findByClienteIdOrderByDataCriacaoDescComRelacionamentos(@Param("clienteId") Long clienteId, Pageable pageable);
+
+    @Query("SELECT p FROM Pedido p JOIN FETCH p.loja JOIN FETCH p.cliente WHERE p.id = :id")
+    Optional<Pedido> findByIdWithRelacionamentos(@Param("id") Long id);
+
     Page<Pedido> findByLojaId(Long lojaId, Pageable pageable);
 
     Page<Pedido> findByClienteId(Long clienteId, Pageable pageable);
