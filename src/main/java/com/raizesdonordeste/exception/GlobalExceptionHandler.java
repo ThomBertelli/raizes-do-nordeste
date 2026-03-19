@@ -13,6 +13,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,7 +23,8 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(EmailJaCadastradoException.class)
-    public ResponseEntity<ErrorResponseDTO> handleEmailJaCadastrado(EmailJaCadastradoException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleEmailJaCadastrado(EmailJaCadastradoException ex, HttpServletRequest request) {
+        log.warn("Email duplicado em {}: {}", resumoRequest(request), ex.getMessage());
         ErrorResponseDTO errorResponseDTO = ErrorResponseDTO.builder()
                 .status(HttpStatus.CONFLICT.value())
                 .erro("Conflito")
@@ -33,7 +35,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(RecursoNaoEncontradoException.class)
-    public ResponseEntity<ErrorResponseDTO> handleRecursoNaoEncontrado(RecursoNaoEncontradoException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleRecursoNaoEncontrado(RecursoNaoEncontradoException ex, HttpServletRequest request) {
+        log.warn("Recurso nao encontrado em {}: {}", resumoRequest(request), ex.getMessage());
         ErrorResponseDTO errorResponseDTO = ErrorResponseDTO.builder()
                 .status(HttpStatus.NOT_FOUND.value())
                 .erro("Não encontrado")
@@ -44,7 +47,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ErrorResponseDTO> handleBadCredentials(BadCredentialsException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleBadCredentials(BadCredentialsException ex, HttpServletRequest request) {
+        log.warn("Falha de autenticacao em {}: {}", resumoRequest(request), ex.getMessage());
         ErrorResponseDTO errorResponseDTO = ErrorResponseDTO.builder()
                 .status(HttpStatus.UNAUTHORIZED.value())
                 .erro("Não autorizado")
@@ -55,7 +59,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<ErrorResponseDTO> handleUsernameNotFound(UsernameNotFoundException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleUsernameNotFound(UsernameNotFoundException ex, HttpServletRequest request) {
+        log.warn("Usuario nao encontrado em {}: {}", resumoRequest(request), ex.getMessage());
         ErrorResponseDTO errorResponseDTO = ErrorResponseDTO.builder()
                 .status(HttpStatus.NOT_FOUND.value())
                 .erro("Não encontrado")
@@ -66,7 +71,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponseDTO> handleValidationErrors(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleValidationErrors(MethodArgumentNotValidException ex, HttpServletRequest request) {
+        log.warn("Erro de validacao em {}", resumoRequest(request));
         List<String> errors = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
@@ -84,7 +90,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponseDTO> handleIllegalArgument(IllegalArgumentException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
+        log.warn("Requisicao invalida em {}: {}", resumoRequest(request), ex.getMessage());
         ErrorResponseDTO errorResponseDTO = ErrorResponseDTO.builder()
                 .status(HttpStatus.BAD_REQUEST.value())
                 .erro("Requisição inválida")
@@ -95,7 +102,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponseDTO> handleAccessDenied(AccessDeniedException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
+        log.warn("Acesso negado em {}: {}", resumoRequest(request), ex.getMessage());
         ErrorResponseDTO errorResponseDTO = ErrorResponseDTO.builder()
                 .status(HttpStatus.FORBIDDEN.value())
                 .erro("Acesso negado")
@@ -106,8 +114,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ErrorResponseDTO> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleDataIntegrityViolation(DataIntegrityViolationException ex, HttpServletRequest request) {
         String mensagem = resolveIntegrityMessage(ex);
+        log.warn("Violacao de integridade em {}: {}", resumoRequest(request), mensagem);
 
         ErrorResponseDTO errorResponseDTO = ErrorResponseDTO.builder()
                 .status(HttpStatus.CONFLICT.value())
@@ -119,8 +128,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponseDTO> handleGenericException(Exception ex) {
-        log.error("Erro não tratado na API", ex);
+    public ResponseEntity<ErrorResponseDTO> handleGenericException(Exception ex, HttpServletRequest request) {
+        log.error("Erro nao tratado em {}", resumoRequest(request), ex);
 
         ErrorResponseDTO errorResponseDTO = ErrorResponseDTO.builder()
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
@@ -147,5 +156,11 @@ public class GlobalExceptionHandler {
 
         return "Violação de integridade dos dados.";
     }
-}
 
+    private String resumoRequest(HttpServletRequest request) {
+        return String.format("%s %s (remote: %s)",
+                request.getMethod(),
+                request.getRequestURI(),
+                request.getRemoteAddr());
+    }
+}
