@@ -17,6 +17,7 @@ import com.raizesdonordeste.domain.repository.ProdutoRepository;
 import com.raizesdonordeste.domain.repository.UsuarioRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -30,6 +31,7 @@ import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PedidoService {
 
     private final PedidoRepository pedidoRepository;
@@ -127,7 +129,17 @@ public class PedidoService {
 
         pedido.setValorTotal(total);
 
-        return toDTO(pedidoRepository.save(pedido));
+        Pedido salvo = pedidoRepository.save(pedido);
+        log.info(
+                "Pedido criado: pedidoId={}, lojaId={}, clienteId={}, total={}, itens={}",
+                salvo.getId(),
+                loja.getId(),
+                cliente.getId(),
+                salvo.getValorTotal(),
+                salvo.getItens() != null ? salvo.getItens().size() : 0
+        );
+
+        return toDTO(salvo);
     }
 
     private Pedido buscarEntidade(Long id) {
