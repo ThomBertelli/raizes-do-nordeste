@@ -95,7 +95,7 @@ class PedidoServiceTest {
         when(pedidoRepository.findAllWithRelacionamentos(pageable))
                 .thenReturn(new PageImpl<>(List.of(pedido1, pedido2), pageable, 2));
 
-        Page<PedidoResponseDTO> resultado = pedidoService.listarPorLoja(null, pageable);
+        Page<PedidoResponseDTO> resultado = pedidoService.listarPorLoja(null, null, null, pageable);
 
         assertThat(resultado.getTotalElements()).isEqualTo(2);
         assertThat(resultado.getContent()).hasSize(2);
@@ -111,7 +111,7 @@ class PedidoServiceTest {
         when(pedidoRepository.findAllWithRelacionamentos(pageable))
                 .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
-        pedidoService.listarPorLoja(999L, pageable);
+        pedidoService.listarPorLoja(999L, null, null, pageable);
 
         verify(pedidoRepository).findAllWithRelacionamentos(pageable);
     }
@@ -126,7 +126,7 @@ class PedidoServiceTest {
         when(pedidoRepository.findByLojaIdOrderByDataCriacaoDescComRelacionamentos(3L, pageable))
                 .thenReturn(new PageImpl<>(List.of(pedido), pageable, 1));
 
-        Page<PedidoResponseDTO> resultado = pedidoService.listarPorLoja(null, pageable);
+        Page<PedidoResponseDTO> resultado = pedidoService.listarPorLoja(null, null, null, pageable);
 
         assertThat(resultado.getTotalElements()).isEqualTo(1);
         assertThat(resultado.getContent().get(0).getLojaId()).isEqualTo(3L);
@@ -142,7 +142,7 @@ class PedidoServiceTest {
         when(pedidoRepository.findByLojaIdOrderByDataCriacaoDescComRelacionamentos(3L, pageable))
                 .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
-        pedidoService.listarPorLoja(3L, pageable);
+        pedidoService.listarPorLoja(3L, null, null, pageable);
 
         verify(pedidoRepository).findByLojaIdOrderByDataCriacaoDescComRelacionamentos(3L, pageable);
     }
@@ -152,7 +152,7 @@ class PedidoServiceTest {
     void gerenteNaoDeveAcessarLojaDiferenteDaSua() {
         autenticarComo(2L, "gerente@teste.com", PerfilUsuario.GERENTE, 3L);
 
-        assertThatThrownBy(() -> pedidoService.listarPorLoja(7L, PageRequest.of(0, 10)))
+        assertThatThrownBy(() -> pedidoService.listarPorLoja(7L, null, null, PageRequest.of(0, 10)))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("outra loja");
         verify(pedidoRepository, never()).findAllWithRelacionamentos(any(Pageable.class));
@@ -165,7 +165,7 @@ class PedidoServiceTest {
     void apenasGerenciaMatrizEGerentePodemListarPorLoja(PerfilUsuario perfilSemPermissao) {
         autenticarComo(3L, "usuario@teste.com", perfilSemPermissao, null);
 
-        assertThatThrownBy(() -> pedidoService.listarPorLoja(null, PageRequest.of(0, 10)))
+        assertThatThrownBy(() -> pedidoService.listarPorLoja(null, null, null, PageRequest.of(0, 10)))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("não autorizado");
         verify(pedidoRepository, never()).findAllWithRelacionamentos(any(Pageable.class));
@@ -176,8 +176,10 @@ class PedidoServiceTest {
     @DisplayName("Usuario nao autenticado nao pode listar pedidos por loja")
     void usuarioNaoAutenticadoNaoPodeListarPedidosPorLoja() {
         SecurityContextHolder.clearContext();
+        when(securityContextService.getRequiredPrincipal())
+                .thenThrow(new AccessDeniedException("Usuário não autenticado"));
 
-        assertThatThrownBy(() -> pedidoService.listarPorLoja(null, PageRequest.of(0, 10)))
+        assertThatThrownBy(() -> pedidoService.listarPorLoja(null, null, null, PageRequest.of(0, 10)))
                 .isInstanceOf(AccessDeniedException.class);
         verify(pedidoRepository, never()).findAllWithRelacionamentos(any(Pageable.class));
         verify(pedidoRepository, never()).findByLojaIdOrderByDataCriacaoDescComRelacionamentos(anyLong(), any(Pageable.class));
@@ -354,6 +356,8 @@ class PedidoServiceTest {
     @DisplayName("Nao deve criar pedido sem autenticacao")
     void naoDeveCriarPedidoSemAutenticacao() {
         SecurityContextHolder.clearContext();
+        when(securityContextService.getRequiredPrincipal())
+                .thenThrow(new AccessDeniedException("Usuário não autenticado"));
 
         PedidoRequestDTO request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
                 new PedidoItemRequestDTO(5L, 1)
@@ -575,5 +579,55 @@ class PedidoServiceTest {
     private PedidoRequestDTO novoPedidoRequest(Long lojaId, CanalPedido canalPedido, List<PedidoItemRequestDTO> itens) {
         return new PedidoRequestDTO(lojaId, canalPedido, itens);
     }
-}
 
+    @Test
+    @DisplayName("GERENCIA_MATRIZ filtra por canalPedido")
+    void gerenciaMatrizFiltraPorCanalPedido() {
+        autenticarComo(1L, "matriz@teste.com", PerfilUsuario.GERENCIA_MATRIZ, null);
+
+        Pedido pedido = pedidoExemplo(1L, lojaExemplo(1L), clienteExemplo(10L));
+        Pageable pageable = PageRequest.of(0, 10);
+        when(pedidoRepository.findByCanalPedidoOrderByDataCriacaoDescComRelacionamentos(CanalPedido.APP, pageable))
+                .thenReturn(new PageImpl<>(List.of(pedido), pageable, 1));
+
+        Page<PedidoResponseDTO> resultado = pedidoService.listarPorLoja(null, CanalPedido.APP, null, pageable);
+
+        assertThat(resultado.getTotalElements()).isEqualTo(1);
+        verify(pedidoRepository).findByCanalPedidoOrderByDataCriacaoDescComRelacionamentos(CanalPedido.APP, pageable);
+    }
+
+    @Test
+    @DisplayName("GERENCIA_MATRIZ filtra por statusPedido")
+    void gerenciaMatrizFiltraPorStatusPedido() {
+        autenticarComo(1L, "matriz@teste.com", PerfilUsuario.GERENCIA_MATRIZ, null);
+
+        Pedido pedido = pedidoExemplo(1L, lojaExemplo(1L), clienteExemplo(10L));
+        Pageable pageable = PageRequest.of(0, 10);
+        when(pedidoRepository.findByStatusPedidoOrderByDataCriacaoDescComRelacionamentos(StatusPedido.CRIADO, pageable))
+                .thenReturn(new PageImpl<>(List.of(pedido), pageable, 1));
+
+        Page<PedidoResponseDTO> resultado = pedidoService.listarPorLoja(null, null, StatusPedido.CRIADO, pageable);
+
+        assertThat(resultado.getTotalElements()).isEqualTo(1);
+        verify(pedidoRepository).findByStatusPedidoOrderByDataCriacaoDescComRelacionamentos(StatusPedido.CRIADO, pageable);
+    }
+
+    @Test
+    @DisplayName("GERENTE filtra por canal e status da propria loja")
+    void gerenteFiltraPorCanalEStatusDaPropriaLoja() {
+        autenticarComo(2L, "gerente@teste.com", PerfilUsuario.GERENTE, 3L);
+
+        Pedido pedido = pedidoExemplo(1L, lojaExemplo(3L), clienteExemplo(10L));
+        Pageable pageable = PageRequest.of(0, 10);
+        when(pedidoRepository.findByLojaIdAndCanalPedidoAndStatusPedidoOrderByDataCriacaoDescComRelacionamentos(
+                3L, CanalPedido.APP, StatusPedido.CRIADO, pageable))
+                .thenReturn(new PageImpl<>(List.of(pedido), pageable, 1));
+
+        Page<PedidoResponseDTO> resultado = pedidoService.listarPorLoja(3L, CanalPedido.APP, StatusPedido.CRIADO, pageable);
+
+        assertThat(resultado.getTotalElements()).isEqualTo(1);
+        assertThat(resultado.getContent().get(0).getLojaId()).isEqualTo(3L);
+        verify(pedidoRepository).findByLojaIdAndCanalPedidoAndStatusPedidoOrderByDataCriacaoDescComRelacionamentos(
+                3L, CanalPedido.APP, StatusPedido.CRIADO, pageable);
+    }
+}

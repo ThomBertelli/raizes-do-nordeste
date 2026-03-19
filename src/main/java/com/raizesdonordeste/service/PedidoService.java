@@ -4,6 +4,7 @@ import com.raizesdonordeste.api.dto.pedido.PedidoRequestDTO;
 import com.raizesdonordeste.api.dto.pedido.PedidoResponseDTO;
 import com.raizesdonordeste.config.UsuarioAutenticado;
 import com.raizesdonordeste.domain.enums.StatusPedido;
+import com.raizesdonordeste.domain.enums.CanalPedido;
 import com.raizesdonordeste.domain.model.ItemPedido;
 import com.raizesdonordeste.domain.model.Pedido;
 import com.raizesdonordeste.domain.model.Estoque;
@@ -40,20 +41,44 @@ public class PedidoService {
     private final SecurityContextService securityContextService;
 
     @Transactional(readOnly = true)
-    public Page<PedidoResponseDTO> listarPorLoja(Long lojaId, Pageable pageable) {
+    public Page<PedidoResponseDTO> listarPorLoja(Long lojaId, CanalPedido canalPedido, StatusPedido statusPedido, Pageable pageable) {
         UsuarioAutenticado principal = securityContextService.getRequiredPrincipal();
         Long lojaAutorizada = pedidoAuthorization.podeListarPedidos(principal, lojaId);
-        log.info("Pedidos listados: lojaSolicitada={}, lojaAutorizada={}, actorId={}, actorPerfil={}",
+        log.info("Pedidos listados: lojaSolicitada={}, lojaAutorizada={}, canalPedido={}, statusPedido={}, actorId={}, actorPerfil={}",
                 lojaId,
                 lojaAutorizada,
+                canalPedido,
+                statusPedido,
                 securityContextService.getActorIdOrNull(),
                 securityContextService.getActorPerfilOrNull());
 
         Page<Pedido> paginaPedidos;
         if (lojaAutorizada == null) {
-            paginaPedidos = pedidoRepository.findAllWithRelacionamentos(pageable);
+            if (canalPedido != null && statusPedido != null) {
+                paginaPedidos = pedidoRepository
+                        .findByCanalPedidoAndStatusPedidoOrderByDataCriacaoDescComRelacionamentos(canalPedido, statusPedido, pageable);
+            } else if (canalPedido != null) {
+                paginaPedidos = pedidoRepository
+                        .findByCanalPedidoOrderByDataCriacaoDescComRelacionamentos(canalPedido, pageable);
+            } else if (statusPedido != null) {
+                paginaPedidos = pedidoRepository
+                        .findByStatusPedidoOrderByDataCriacaoDescComRelacionamentos(statusPedido, pageable);
+            } else {
+                paginaPedidos = pedidoRepository.findAllWithRelacionamentos(pageable);
+            }
         } else {
-            paginaPedidos = pedidoRepository.findByLojaIdOrderByDataCriacaoDescComRelacionamentos(lojaAutorizada, pageable);
+            if (canalPedido != null && statusPedido != null) {
+                paginaPedidos = pedidoRepository
+                        .findByLojaIdAndCanalPedidoAndStatusPedidoOrderByDataCriacaoDescComRelacionamentos(lojaAutorizada, canalPedido, statusPedido, pageable);
+            } else if (canalPedido != null) {
+                paginaPedidos = pedidoRepository
+                        .findByLojaIdAndCanalPedidoOrderByDataCriacaoDescComRelacionamentos(lojaAutorizada, canalPedido, pageable);
+            } else if (statusPedido != null) {
+                paginaPedidos = pedidoRepository
+                        .findByLojaIdAndStatusPedidoOrderByDataCriacaoDescComRelacionamentos(lojaAutorizada, statusPedido, pageable);
+            } else {
+                paginaPedidos = pedidoRepository.findByLojaIdOrderByDataCriacaoDescComRelacionamentos(lojaAutorizada, pageable);
+            }
         }
 
         return paginaPedidos.map(this::toDTO);

@@ -2,6 +2,8 @@ package com.raizesdonordeste.api.controller;
 
 import com.raizesdonordeste.api.dto.pedido.PedidoRequestDTO;
 import com.raizesdonordeste.api.dto.pedido.PedidoResponseDTO;
+import com.raizesdonordeste.domain.enums.CanalPedido;
+import com.raizesdonordeste.domain.enums.StatusPedido;
 import com.raizesdonordeste.service.PedidoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -38,8 +40,10 @@ public class PedidoController {
     @GetMapping
     public ResponseEntity<Page<PedidoResponseDTO>> listarPorLoja(
             @RequestParam(required = false) Long lojaId,
+            @RequestParam(required = false) CanalPedido canalPedido,
+            @RequestParam(required = false) StatusPedido statusPedido,
             @PageableDefault(size = 20, sort = "dataCriacao") Pageable pageable) {
-        return ResponseEntity.ok(pedidoService.listarPorLoja(lojaId, pageable));
+        return ResponseEntity.ok(pedidoService.listarPorLoja(lojaId, canalPedido, statusPedido, pageable));
     }
 
     @GetMapping("/meus")
@@ -48,4 +52,3 @@ public class PedidoController {
         return ResponseEntity.ok(pedidoService.listarMeusPedidos(pageable));
     }
 }
-
