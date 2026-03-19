@@ -15,6 +15,7 @@ import com.raizesdonordeste.domain.repository.ProdutoRepository;
 import com.raizesdonordeste.domain.repository.UsuarioRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -26,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EstoqueService {
 
     private final EstoqueRepository estoqueRepository;
@@ -171,6 +173,15 @@ public class EstoqueService {
                 .build();
 
         movimentacaoEstoqueRepository.save(movimentacao);
+        log.info(
+                "Movimentacao de estoque registrada: tipo={}, estoqueId={}, lojaId={}, produtoId={}, quantidade={}, usuarioId={}",
+                tipo,
+                estoque.getId(),
+                estoque.getLoja().getId(),
+                estoque.getProduto().getId(),
+                quantidade,
+                principal.getId()
+        );
     }
 
     private void validarQuantidade(Integer quantidade) {
@@ -194,4 +205,3 @@ public class EstoqueService {
         return usuarioAutenticado;
     }
 }
-
