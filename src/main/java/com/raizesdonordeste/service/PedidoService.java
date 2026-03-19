@@ -17,6 +17,7 @@ import com.raizesdonordeste.domain.repository.ProdutoRepository;
 import com.raizesdonordeste.domain.repository.UsuarioRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PedidoService {
 
     private final PedidoRepository pedidoRepository;
@@ -41,6 +43,11 @@ public class PedidoService {
     public Page<PedidoResponseDTO> listarPorLoja(Long lojaId, Pageable pageable) {
         UsuarioAutenticado principal = securityContextService.getRequiredPrincipal();
         Long lojaAutorizada = pedidoAuthorization.podeListarPedidos(principal, lojaId);
+        log.info("Pedidos listados: lojaSolicitada={}, lojaAutorizada={}, actorId={}, actorPerfil={}",
+                lojaId,
+                lojaAutorizada,
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
 
         Page<Pedido> paginaPedidos;
         if (lojaAutorizada == null) {
@@ -57,6 +64,9 @@ public class PedidoService {
         UsuarioAutenticado principal = securityContextService.getRequiredPrincipal();
 
         pedidoAuthorization.exigirCliente(principal);
+        log.info("Pedidos do cliente listados: actorId={}, actorPerfil={}",
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
 
         return pedidoRepository
                 .findByClienteIdOrderByDataCriacaoDescComRelacionamentos(principal.getId(), pageable)
@@ -69,6 +79,11 @@ public class PedidoService {
         Pedido pedido = buscarEntidade(id);
 
         pedidoAuthorization.podeVisualizarPedido(principal, pedido);
+        log.info("Pedido visualizado: pedidoId={}, lojaId={}, actorId={}, actorPerfil={}",
+                pedido.getId(),
+                pedido.getLoja().getId(),
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
 
         return toDTO(pedido);
     }
@@ -125,7 +140,14 @@ public class PedidoService {
 
         pedido.setValorTotal(total);
 
-        return toDTO(pedidoRepository.save(pedido));
+        Pedido salvo = pedidoRepository.save(pedido);
+        log.info("Pedido criado: pedidoId={}, lojaId={}, valorTotal={}, actorId={}, actorPerfil={}",
+                salvo.getId(),
+                salvo.getLoja().getId(),
+                salvo.getValorTotal(),
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
+        return toDTO(salvo);
     }
 
     private Pedido buscarEntidade(Long id) {
