@@ -9,6 +9,7 @@ import com.raizesdonordeste.domain.model.Usuario;
 import com.raizesdonordeste.domain.repository.UsuarioRepository;
 import com.raizesdonordeste.exception.EmailJaCadastradoException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
     private final AuthenticationManager authenticationManager;
@@ -47,6 +49,8 @@ public class AuthService {
             Usuario usuario = usuarioRepository.findByEmail(loginRequestDTO.getEmail())
                     .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
 
+            log.info("Login realizado com sucesso: usuarioId={}, perfil={}", usuario.getId(), usuario.getPerfil());
+
             return LoginResponseDTO.builder()
                     .accessToken(token)
                     .expiresIn(jwtExpiration)
@@ -57,6 +61,7 @@ public class AuthService {
                     .build();
 
         } catch (AuthenticationException e) {
+            log.warn("Falha de autenticacao de usuario");
             throw new BadCredentialsException("Email ou senha inválidos");
         }
     }
@@ -78,6 +83,7 @@ public class AuthService {
                 .build();
 
         Usuario salvo = usuarioRepository.save(usuario);
+        log.info("Cadastro realizado: usuarioId={}, perfil={}", salvo.getId(), salvo.getPerfil());
 
         String token = jwtTokenProvider.gerarToken(salvo.getEmail());
 
