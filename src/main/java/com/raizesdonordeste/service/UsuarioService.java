@@ -3,7 +3,6 @@ package com.raizesdonordeste.service;
 import com.raizesdonordeste.api.dto.usuario.UsuarioUpdateDTO;
 import com.raizesdonordeste.api.dto.usuario.UsuarioCreateDTO;
 import com.raizesdonordeste.api.dto.usuario.UsuarioResponseDTO;
-import com.raizesdonordeste.config.UsuarioAutenticado;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.model.Usuario;
@@ -14,13 +13,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +25,7 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final LojaRepository lojaRepository;
     private final PasswordEncoder passwordEncoder;
+    private final SecurityContextService securityContextService;
 
     @Transactional
     public UsuarioResponseDTO criar(UsuarioCreateDTO dto) {
@@ -57,8 +53,8 @@ public class UsuarioService {
                 salvo.getId(),
                 salvo.getPerfil(),
                 salvo.getLoja() != null ? salvo.getLoja().getId() : null,
-                obterIdAtor(),
-                obterPerfilAtor());
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
 
         return converterParaDTO(salvo);
     }
@@ -109,8 +105,8 @@ public class UsuarioService {
                 atualizado.getId(),
                 atualizado.getPerfil(),
                 atualizado.isAtivo(),
-                obterIdAtor(),
-                obterPerfilAtor());
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
 
         return converterParaDTO(atualizado);
     }
@@ -160,7 +156,10 @@ public class UsuarioService {
             throw new IllegalArgumentException("Usuário não encontrado");
         }
         usuarioRepository.deleteById(id);
-        log.info("Usuario deletado: usuarioId={}, actorId={}, actorPerfil={}", id, obterIdAtor(), obterPerfilAtor());
+        log.info("Usuario deletado: usuarioId={}, actorId={}, actorPerfil={}",
+                id,
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
     }
 
     @Transactional
@@ -169,7 +168,10 @@ public class UsuarioService {
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
         usuario.setAtivo(false);
         usuarioRepository.save(usuario);
-        log.info("Usuario desativado: usuarioId={}, actorId={}, actorPerfil={}", id, obterIdAtor(), obterPerfilAtor());
+        log.info("Usuario desativado: usuarioId={}, actorId={}, actorPerfil={}",
+                id,
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
     }
 
     @Transactional
@@ -178,7 +180,10 @@ public class UsuarioService {
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
         usuario.setAtivo(true);
         usuarioRepository.save(usuario);
-        log.info("Usuario ativado: usuarioId={}, actorId={}, actorPerfil={}", id, obterIdAtor(), obterPerfilAtor());
+        log.info("Usuario ativado: usuarioId={}, actorId={}, actorPerfil={}",
+                id,
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
     }
 
     private UsuarioResponseDTO converterParaDTO(Usuario usuario) {
@@ -215,7 +220,7 @@ public class UsuarioService {
     }
 
     private void validarPermissaoCriacao(PerfilUsuario perfilDesejado) {
-        PerfilUsuario perfilSolicitante = obterPerfilDoSolicitante();
+        PerfilUsuario perfilSolicitante = securityContextService.getRequiredPerfil();
 
         boolean permitido = switch (perfilSolicitante) {
             case ADMIN -> perfilDesejado != PerfilUsuario.CLIENTE;
@@ -231,53 +236,6 @@ public class UsuarioService {
         }
     }
 
-    private PerfilUsuario obterPerfilDoSolicitante() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new AccessDeniedException("Usuário não autenticado");
-        }
-
-        return authentication.getAuthorities().stream()
-                .map(authority -> authority.getAuthority())
-                .filter(Objects::nonNull)
-                .filter(authority -> authority.startsWith("ROLE_"))
-                .map(authority -> authority.substring(5))
-                .findFirst()
-                .map(PerfilUsuario::valueOf)
-                .orElseThrow(() -> new AccessDeniedException("Perfil do usuário autenticado não identificado"));
-    }
-
-    private Long obterIdAtor() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return null;
-        }
-        Object principal = authentication.getPrincipal();
-        if (principal instanceof UsuarioAutenticado usuarioAutenticado) {
-            return usuarioAutenticado.getId();
-        }
-        return null;
-    }
-
-    private PerfilUsuario obterPerfilAtor() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return null;
-        }
-        Object principal = authentication.getPrincipal();
-        if (principal instanceof UsuarioAutenticado usuarioAutenticado) {
-            return usuarioAutenticado.getPerfil();
-        }
-        return authentication.getAuthorities().stream()
-                .map(authority -> authority.getAuthority())
-                .filter(Objects::nonNull)
-                .filter(authority -> authority.startsWith("ROLE_"))
-                .map(authority -> authority.substring(5))
-                .findFirst()
-                .map(PerfilUsuario::valueOf)
-                .orElse(null);
-    }
 
     private boolean resolverConsentimentoFidelidadeCriacao(UsuarioCreateDTO dto) {
         if (dto.getPerfil() == PerfilUsuario.CLIENTE) {

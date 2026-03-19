@@ -45,6 +45,9 @@ class UsuarioServicePermissaoCriacaoTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private SecurityContextService securityContextService;
+
     @InjectMocks
     private UsuarioService usuarioService;
 
@@ -150,6 +153,8 @@ class UsuarioServicePermissaoCriacaoTest {
     @DisplayName("Usuario nao autenticado nao pode criar ADMIN")
     void usuarioNaoAutenticadoNaoPodeCriarAdmin() {
         SecurityContextHolder.clearContext();
+        when(securityContextService.getRequiredPerfil())
+                .thenThrow(new AccessDeniedException("Usuário não autenticado"));
 
         UsuarioCreateDTO dto = novoUsuarioDto(PerfilUsuario.ADMIN, "novo-admin-sem-auth@mail.com");
 
@@ -265,6 +270,9 @@ class UsuarioServicePermissaoCriacaoTest {
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken("tester", "senha", List.of(() -> "ROLE_" + perfil.name()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        when(securityContextService.getRequiredPerfil()).thenReturn(perfil);
+        lenient().when(securityContextService.getActorIdOrNull()).thenReturn(null);
+        lenient().when(securityContextService.getActorPerfilOrNull()).thenReturn(perfil);
     }
 
     private UsuarioCreateDTO novoUsuarioDto(PerfilUsuario perfil, String email) {
