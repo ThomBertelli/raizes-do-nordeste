@@ -1,14 +1,22 @@
 package com.raizesdonordeste.service;
 
+import com.raizesdonordeste.api.dto.pedido.CreatePedidoItemRequest;
+import com.raizesdonordeste.api.dto.pedido.CreatePedidoRequest;
 import com.raizesdonordeste.api.dto.pedido.PedidoRespostaDTO;
 import com.raizesdonordeste.config.UsuarioAutenticado;
 import com.raizesdonordeste.domain.enums.CanalPedido;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.enums.StatusPedido;
+import com.raizesdonordeste.domain.model.Estoque;
 import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.model.Pedido;
+import com.raizesdonordeste.domain.model.Produto;
 import com.raizesdonordeste.domain.model.Usuario;
+import com.raizesdonordeste.domain.repository.EstoqueRepository;
+import com.raizesdonordeste.domain.repository.LojaRepository;
 import com.raizesdonordeste.domain.repository.PedidoRepository;
+import com.raizesdonordeste.domain.repository.ProdutoRepository;
+import com.raizesdonordeste.domain.repository.UsuarioRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -40,6 +48,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +56,18 @@ class PedidoServiceTest {
 
     @Mock
     private PedidoRepository pedidoRepository;
+
+    @Mock
+    private LojaRepository lojaRepository;
+
+    @Mock
+    private ProdutoRepository produtoRepository;
+
+    @Mock
+    private EstoqueRepository estoqueRepository;
+
+    @Mock
+    private UsuarioRepository usuarioRepository;
 
     @Spy
     private PedidoAuthorization pedidoAuthorization;
@@ -160,6 +181,202 @@ class PedidoServiceTest {
                 .isInstanceOf(AccessDeniedException.class);
         verify(pedidoRepository, never()).findAllWithRelacionamentos(any(Pageable.class));
         verify(pedidoRepository, never()).findByLojaIdOrderByDataCriacaoDescComRelacionamentos(anyLong(), any(Pageable.class));
+    }
+
+    // -------------------------------------------------------------------------
+    // Testes de criacao de pedido
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("CLIENTE pode criar pedido")
+    void clientePodeCriarPedido() {
+        autenticarComo(10L, "cliente@teste.com", PerfilUsuario.CLIENTE, null);
+
+        CreatePedidoRequest request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
+                new CreatePedidoItemRequest(5L, 2)
+        ));
+
+        Loja loja = lojaExemplo(1L);
+        Produto produto = produtoExemplo(5L, new BigDecimal("10.00"));
+        Usuario cliente = clienteExemplo(10L);
+        Estoque estoque = estoqueExemplo(loja, produto, 5);
+
+        when(lojaRepository.findById(1L)).thenReturn(Optional.of(loja));
+        when(usuarioRepository.findById(10L)).thenReturn(Optional.of(cliente));
+        when(produtoRepository.findById(5L)).thenReturn(Optional.of(produto));
+        when(estoqueRepository.findByLojaIdAndProdutoIdWithLock(1L, 5L))
+                .thenReturn(Optional.of(estoque));
+        when(estoqueRepository.save(any(Estoque.class))).thenAnswer(inv -> inv.getArgument(0, Estoque.class));
+        when(pedidoRepository.save(any(Pedido.class))).thenAnswer(inv -> {
+            Pedido pedido = inv.getArgument(0, Pedido.class);
+            pedido.setId(99L);
+            return pedido;
+        });
+
+        PedidoRespostaDTO resposta = pedidoService.criar(request);
+
+        assertThat(resposta).isNotNull();
+        assertThat(resposta.getStatusPedido()).isEqualTo(StatusPedido.CRIADO);
+        assertThat(resposta.getValorTotal()).isEqualTo(new BigDecimal("20.00"));
+        assertThat(estoque.getQuantidade()).isEqualTo(3);
+        verify(estoqueRepository).save(any(Estoque.class));
+        verify(pedidoRepository).save(any(Pedido.class));
+    }
+
+    @Test
+    @DisplayName("Concorrencia: apenas um pedido criado quando estoque so atende uma requisicao")
+    void concorrenciaDeEstoqueNaoPermiteDoisPedidos() {
+        autenticarComo(10L, "cliente@teste.com", PerfilUsuario.CLIENTE, null);
+
+        CreatePedidoRequest request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
+                new CreatePedidoItemRequest(5L, 2)
+        ));
+
+        Loja loja = lojaExemplo(1L);
+        Produto produto = produtoExemplo(5L, new BigDecimal("10.00"));
+        Usuario cliente = clienteExemplo(10L);
+        Estoque estoque = estoqueExemplo(loja, produto, 2);
+
+        when(lojaRepository.findById(1L)).thenReturn(Optional.of(loja));
+        when(usuarioRepository.findById(10L)).thenReturn(Optional.of(cliente));
+        when(produtoRepository.findById(5L)).thenReturn(Optional.of(produto));
+        when(estoqueRepository.findByLojaIdAndProdutoIdWithLock(1L, 5L))
+                .thenReturn(Optional.of(estoque));
+        when(estoqueRepository.save(any(Estoque.class))).thenAnswer(inv -> inv.getArgument(0, Estoque.class));
+        when(pedidoRepository.save(any(Pedido.class))).thenAnswer(inv -> {
+            Pedido pedido = inv.getArgument(0, Pedido.class);
+            pedido.setId(100L);
+            return pedido;
+        });
+
+        PedidoRespostaDTO primeiraResposta = pedidoService.criar(request);
+
+        assertThat(primeiraResposta).isNotNull();
+        assertThat(estoque.getQuantidade()).isEqualTo(0);
+
+        assertThatThrownBy(() -> pedidoService.criar(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Estoque insuficiente");
+
+        verify(pedidoRepository, times(1)).save(any(Pedido.class));
+        verify(estoqueRepository, times(1)).save(any(Estoque.class));
+    }
+
+    @Test
+    @DisplayName("Nao deve criar pedido sem canalPedido")
+    void naoDeveCriarPedidoSemCanalPedido() {
+        autenticarComo(10L, "cliente@teste.com", PerfilUsuario.CLIENTE, null);
+
+        CreatePedidoRequest request = novoPedidoRequest(1L, null, List.of(
+                new CreatePedidoItemRequest(5L, 1)
+        ));
+
+        assertThatThrownBy(() -> pedidoService.criar(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("canalPedido");
+        verify(pedidoRepository, never()).save(any(Pedido.class));
+    }
+
+    @Test
+    @DisplayName("Nao deve criar pedido sem itens")
+    void naoDeveCriarPedidoSemItens() {
+        autenticarComo(10L, "cliente@teste.com", PerfilUsuario.CLIENTE, null);
+
+        CreatePedidoRequest request = novoPedidoRequest(1L, CanalPedido.APP, List.of());
+
+        assertThatThrownBy(() -> pedidoService.criar(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("itens");
+        verify(pedidoRepository, never()).save(any(Pedido.class));
+    }
+
+    @Test
+    @DisplayName("Nao deve criar pedido com loja inexistente")
+    void naoDeveCriarPedidoComLojaInexistente() {
+        autenticarComo(10L, "cliente@teste.com", PerfilUsuario.CLIENTE, null);
+
+        CreatePedidoRequest request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
+                new CreatePedidoItemRequest(5L, 1)
+        ));
+
+        when(lojaRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> pedidoService.criar(request))
+                .isInstanceOf(RecursoNaoEncontradoException.class)
+                .hasMessageContaining("Loja não encontrada");
+        verify(pedidoRepository, never()).save(any(Pedido.class));
+    }
+
+    @Test
+    @DisplayName("Nao deve criar pedido com produto inexistente")
+    void naoDeveCriarPedidoComProdutoInexistente() {
+        autenticarComo(10L, "cliente@teste.com", PerfilUsuario.CLIENTE, null);
+
+        CreatePedidoRequest request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
+                new CreatePedidoItemRequest(5L, 1)
+        ));
+
+        when(lojaRepository.findById(1L)).thenReturn(Optional.of(lojaExemplo(1L)));
+        when(usuarioRepository.findById(10L)).thenReturn(Optional.of(clienteExemplo(10L)));
+        when(produtoRepository.findById(5L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> pedidoService.criar(request))
+                .isInstanceOf(RecursoNaoEncontradoException.class)
+                .hasMessageContaining("Produto não encontrado");
+        verify(pedidoRepository, never()).save(any(Pedido.class));
+    }
+
+    @Test
+    @DisplayName("Nao deve criar pedido com estoque insuficiente")
+    void naoDeveCriarPedidoComEstoqueInsuficiente() {
+        autenticarComo(10L, "cliente@teste.com", PerfilUsuario.CLIENTE, null);
+
+        CreatePedidoRequest request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
+                new CreatePedidoItemRequest(5L, 3)
+        ));
+
+        Loja loja = lojaExemplo(1L);
+        Produto produto = produtoExemplo(5L, new BigDecimal("10.00"));
+
+        when(lojaRepository.findById(1L)).thenReturn(Optional.of(loja));
+        when(usuarioRepository.findById(10L)).thenReturn(Optional.of(clienteExemplo(10L)));
+        when(produtoRepository.findById(5L)).thenReturn(Optional.of(produto));
+        when(estoqueRepository.findByLojaIdAndProdutoIdWithLock(1L, 5L))
+                .thenReturn(Optional.of(estoqueExemplo(loja, produto, 2)));
+
+        assertThatThrownBy(() -> pedidoService.criar(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Estoque insuficiente");
+        verify(pedidoRepository, never()).save(any(Pedido.class));
+    }
+
+    @Test
+    @DisplayName("Nao deve criar pedido sem autenticacao")
+    void naoDeveCriarPedidoSemAutenticacao() {
+        SecurityContextHolder.clearContext();
+
+        CreatePedidoRequest request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
+                new CreatePedidoItemRequest(5L, 1)
+        ));
+
+        assertThatThrownBy(() -> pedidoService.criar(request))
+                .isInstanceOf(AccessDeniedException.class);
+        verify(pedidoRepository, never()).save(any(Pedido.class));
+    }
+
+    @Test
+    @DisplayName("Apenas CLIENTE pode criar pedido")
+    void apenasClientePodeCriarPedido() {
+        autenticarComo(2L, "gerente@teste.com", PerfilUsuario.GERENTE, 3L);
+
+        CreatePedidoRequest request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
+                new CreatePedidoItemRequest(5L, 1)
+        ));
+
+        assertThatThrownBy(() -> pedidoService.criar(request))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("Apenas clientes");
+        verify(pedidoRepository, never()).save(any(Pedido.class));
     }
 
     // -------------------------------------------------------------------------
@@ -296,6 +513,25 @@ class PedidoServiceTest {
                 .build();
     }
 
+    private Produto produtoExemplo(Long id, BigDecimal preco) {
+        return Produto.builder()
+                .id(id)
+                .nome("Produto " + id)
+                .descricao("Descricao")
+                .preco(preco)
+                .ativo(true)
+                .build();
+    }
+
+    private Estoque estoqueExemplo(Loja loja, Produto produto, Integer quantidade) {
+        return Estoque.builder()
+                .id(1L)
+                .loja(loja)
+                .produto(produto)
+                .quantidade(quantidade)
+                .build();
+    }
+
     private Loja lojaExemplo(Long id) {
         return Loja.builder()
                 .id(id)
@@ -332,6 +568,10 @@ class PedidoServiceTest {
         UsernamePasswordAuthenticationToken auth =
                 new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(auth);
+    }
+
+    private CreatePedidoRequest novoPedidoRequest(Long lojaId, CanalPedido canalPedido, List<CreatePedidoItemRequest> itens) {
+        return new CreatePedidoRequest(lojaId, canalPedido, itens);
     }
 }
 
