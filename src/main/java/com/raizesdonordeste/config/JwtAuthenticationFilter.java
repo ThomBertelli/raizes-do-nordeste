@@ -43,9 +43,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+            } else if (StringUtils.hasText(token)) {
+                logger.warn(String.format(
+                        "JWT invalido para %s %s (remote: %s)",
+                        request.getMethod(),
+                        request.getRequestURI(),
+                        request.getRemoteAddr()
+                ));
             }
         } catch (Exception e) {
-            logger.error("Não foi possível definir a autenticação do usuário no contexto de segurança", e);
+            logger.error(
+                    String.format(
+                            "Falha ao definir autenticacao via JWT para %s %s (remote: %s)",
+                            request.getMethod(),
+                            request.getRequestURI(),
+                            request.getRemoteAddr()
+                    ),
+                    e
+            );
         }
 
         filterChain.doFilter(request, response);
@@ -61,4 +76,3 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return null;
     }
 }
-
