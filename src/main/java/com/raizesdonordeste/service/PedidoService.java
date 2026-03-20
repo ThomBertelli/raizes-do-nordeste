@@ -2,9 +2,11 @@ package com.raizesdonordeste.service;
 
 import com.raizesdonordeste.api.dto.pedido.PedidoRequestDTO;
 import com.raizesdonordeste.api.dto.pedido.PedidoResponseDTO;
+import com.raizesdonordeste.api.dto.pedido.PedidoStatusUpdateDTO;
 import com.raizesdonordeste.config.UsuarioAutenticado;
 import com.raizesdonordeste.domain.enums.StatusPedido;
 import com.raizesdonordeste.domain.enums.CanalPedido;
+import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.model.ItemPedido;
 import com.raizesdonordeste.domain.model.Pedido;
 import com.raizesdonordeste.domain.model.Estoque;
@@ -175,6 +177,42 @@ public class PedidoService {
         return toDTO(salvo);
     }
 
+    @Transactional
+    public PedidoResponseDTO atualizarStatusOperacaoLoja(Long pedidoId, PedidoStatusUpdateDTO request) {
+        if (request == null || request.getStatusPedido() == null || request.getOrigem() == null) {
+            throw new IllegalArgumentException("statusPedido e origem são obrigatórios");
+        }
+        if (request.getOrigem() != PedidoStatusUpdateDTO.OrigemStatusPedido.OPERACAO_LOJA) {
+            throw new IllegalArgumentException("Origem inválida para atualização manual do status");
+        }
+
+        UsuarioAutenticado principal = securityContextService.getRequiredPrincipal();
+        if (principal.getPerfil() != PerfilUsuario.FUNCIONARIO && principal.getPerfil() != PerfilUsuario.GERENTE) {
+            throw new org.springframework.security.access.AccessDeniedException("Perfil não autorizado para atualizar status do pedido");
+        }
+
+        Pedido pedido = buscarEntidade(pedidoId);
+        if (principal.getLojaId() == null || !principal.getLojaId().equals(pedido.getLoja().getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Acesso negado: pedido de outra loja");
+        }
+
+        StatusPedido statusAtual = pedido.getStatusPedido();
+        StatusPedido statusNovo = request.getStatusPedido();
+        validarTransicaoOperacaoLoja(statusAtual, statusNovo);
+
+        pedido.setStatusPedido(statusNovo);
+        Pedido salvo = pedidoRepository.save(pedido);
+        log.info("Status do pedido atualizado: pedidoId={}, lojaId={}, statusAnterior={}, statusNovo={}, actorId={}, actorPerfil={}",
+                salvo.getId(),
+                salvo.getLoja().getId(),
+                statusAtual,
+                statusNovo,
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
+
+        return toDTO(salvo);
+    }
+
     private Pedido buscarEntidade(Long id) {
         return pedidoRepository.findByIdWithRelacionamentos(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Pedido não encontrado: " + id));
@@ -195,6 +233,18 @@ public class PedidoService {
         }
     }
 
+    private void validarTransicaoOperacaoLoja(StatusPedido statusAtual, StatusPedido statusNovo) {
+        if (statusAtual == StatusPedido.CONFIRMADO && statusNovo == StatusPedido.PREPARO) {
+            return;
+        }
+        if (statusAtual == StatusPedido.PREPARO && statusNovo == StatusPedido.PRONTO) {
+            return;
+        }
+        if (statusAtual == StatusPedido.PRONTO && statusNovo == StatusPedido.ENTREGUE) {
+            return;
+        }
+        throw new IllegalArgumentException("Transição de status não permitida: " + statusAtual + " -> " + statusNovo);
+    }
 
     private PedidoResponseDTO toDTO(Pedido pedido) {
         return PedidoResponseDTO.builder()
