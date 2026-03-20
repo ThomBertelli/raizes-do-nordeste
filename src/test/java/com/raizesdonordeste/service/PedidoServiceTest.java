@@ -3,6 +3,7 @@ package com.raizesdonordeste.service;
 import com.raizesdonordeste.api.dto.pedido.PedidoItemRequestDTO;
 import com.raizesdonordeste.api.dto.pedido.PedidoRequestDTO;
 import com.raizesdonordeste.api.dto.pedido.PedidoResponseDTO;
+import com.raizesdonordeste.api.dto.pedido.PedidoStatusUpdateDTO;
 import com.raizesdonordeste.config.UsuarioAutenticado;
 import com.raizesdonordeste.domain.enums.CanalPedido;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
@@ -498,6 +499,103 @@ class PedidoServiceTest {
         assertThatThrownBy(() -> pedidoService.buscarPorId(999L))
                 .isInstanceOf(RecursoNaoEncontradoException.class)
                 .hasMessageContaining("Pedido não encontrado");
+    }
+
+    // -------------------------------------------------------------------------
+    // Testes de atualizacao de status do pedido (operacao loja)
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("FUNCIONARIO pode avancar status CONFIRMADO -> PREPARO na propria loja")
+    void funcionarioPodeAvancarStatusConfirmadoParaPreparoNaPropriaLoja() {
+        autenticarComo(20L, "func@teste.com", PerfilUsuario.FUNCIONARIO, 5L);
+
+        Pedido pedido = pedidoExemplo(1L, lojaExemplo(5L), clienteExemplo(10L));
+        pedido.setStatusPedido(StatusPedido.CONFIRMADO);
+        when(pedidoRepository.findByIdWithRelacionamentos(1L)).thenReturn(Optional.of(pedido));
+        when(pedidoRepository.save(any(Pedido.class))).thenAnswer(inv -> inv.getArgument(0, Pedido.class));
+
+        PedidoStatusUpdateDTO request = new PedidoStatusUpdateDTO(
+                StatusPedido.PREPARO,
+                PedidoStatusUpdateDTO.OrigemStatusPedido.OPERACAO_LOJA
+        );
+
+        PedidoResponseDTO resultado = pedidoService.atualizarStatusOperacaoLoja(1L, request);
+
+        assertThat(resultado.getStatusPedido()).isEqualTo(StatusPedido.PREPARO);
+        verify(pedidoRepository).save(any(Pedido.class));
+    }
+
+    @Test
+    @DisplayName("Nao permite transicao invalida de status na operacao da loja")
+    void naoPermiteTransicaoInvalidaNaOperacaoLoja() {
+        autenticarComo(20L, "func@teste.com", PerfilUsuario.FUNCIONARIO, 5L);
+
+        Pedido pedido = pedidoExemplo(1L, lojaExemplo(5L), clienteExemplo(10L));
+        pedido.setStatusPedido(StatusPedido.CRIADO);
+        when(pedidoRepository.findByIdWithRelacionamentos(1L)).thenReturn(Optional.of(pedido));
+
+        PedidoStatusUpdateDTO request = new PedidoStatusUpdateDTO(
+                StatusPedido.PREPARO,
+                PedidoStatusUpdateDTO.OrigemStatusPedido.OPERACAO_LOJA
+        );
+
+        assertThatThrownBy(() -> pedidoService.atualizarStatusOperacaoLoja(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Transição de status não permitida");
+        verify(pedidoRepository, never()).save(any(Pedido.class));
+    }
+
+    @Test
+    @DisplayName("Cliente nao pode atualizar status de pedido")
+    void clienteNaoPodeAtualizarStatusPedido() {
+        autenticarComo(10L, "cliente@teste.com", PerfilUsuario.CLIENTE, null);
+
+        PedidoStatusUpdateDTO request = new PedidoStatusUpdateDTO(
+                StatusPedido.PREPARO,
+                PedidoStatusUpdateDTO.OrigemStatusPedido.OPERACAO_LOJA
+        );
+
+        assertThatThrownBy(() -> pedidoService.atualizarStatusOperacaoLoja(1L, request))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("Perfil não autorizado");
+        verify(pedidoRepository, never()).save(any(Pedido.class));
+    }
+
+    @Test
+    @DisplayName("Funcionario nao pode atualizar pedido de outra loja")
+    void funcionarioNaoPodeAtualizarPedidoDeOutraLoja() {
+        autenticarComo(20L, "func@teste.com", PerfilUsuario.FUNCIONARIO, 5L);
+
+        Pedido pedido = pedidoExemplo(1L, lojaExemplo(8L), clienteExemplo(10L));
+        pedido.setStatusPedido(StatusPedido.CONFIRMADO);
+        when(pedidoRepository.findByIdWithRelacionamentos(1L)).thenReturn(Optional.of(pedido));
+
+        PedidoStatusUpdateDTO request = new PedidoStatusUpdateDTO(
+                StatusPedido.PREPARO,
+                PedidoStatusUpdateDTO.OrigemStatusPedido.OPERACAO_LOJA
+        );
+
+        assertThatThrownBy(() -> pedidoService.atualizarStatusOperacaoLoja(1L, request))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("outra loja");
+        verify(pedidoRepository, never()).save(any(Pedido.class));
+    }
+
+    @Test
+    @DisplayName("Origem diferente de OPERACAO_LOJA nao e aceita")
+    void origemDiferenteDeOperacaoLojaNaoEAceita() {
+        autenticarComo(20L, "func@teste.com", PerfilUsuario.FUNCIONARIO, 5L);
+
+        PedidoStatusUpdateDTO request = new PedidoStatusUpdateDTO(
+                StatusPedido.PREPARO,
+                PedidoStatusUpdateDTO.OrigemStatusPedido.PAGAMENTO
+        );
+
+        assertThatThrownBy(() -> pedidoService.atualizarStatusOperacaoLoja(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Origem inválida");
+        verify(pedidoRepository, never()).save(any(Pedido.class));
     }
 
     // -------------------------------------------------------------------------

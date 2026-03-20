@@ -2,6 +2,7 @@ package com.raizesdonordeste.api.controller;
 
 import com.raizesdonordeste.api.dto.pedido.PedidoRequestDTO;
 import com.raizesdonordeste.api.dto.pedido.PedidoResponseDTO;
+import com.raizesdonordeste.api.dto.pedido.PedidoStatusUpdateDTO;
 import com.raizesdonordeste.domain.enums.CanalPedido;
 import com.raizesdonordeste.domain.enums.StatusPedido;
 import com.raizesdonordeste.service.PedidoService;
@@ -15,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -50,5 +52,12 @@ public class PedidoController {
     public ResponseEntity<Page<PedidoResponseDTO>> listarMeusPedidos(
             @PageableDefault(size = 20, sort = "dataCriacao") Pageable pageable) {
         return ResponseEntity.ok(pedidoService.listarMeusPedidos(pageable));
+    }
+
+    @PutMapping("/{id}/status")
+    public ResponseEntity<PedidoResponseDTO> atualizarStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody PedidoStatusUpdateDTO dto) {
+        return ResponseEntity.ok(pedidoService.atualizarStatusOperacaoLoja(id, dto));
     }
 }
