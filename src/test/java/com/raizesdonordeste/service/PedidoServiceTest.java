@@ -227,6 +227,66 @@ class PedidoServiceTest {
     }
 
     @Test
+    @DisplayName("FUNCIONARIO pode criar pedido")
+    void funcionarioPodeCriarPedido() {
+        autenticarComo(20L, "func@teste.com", PerfilUsuario.FUNCIONARIO, 1L);
+
+        PedidoRequestDTO request = novoPedidoRequest(1L, CanalPedido.BALCAO, List.of(
+                new PedidoItemRequestDTO(5L, 1)
+        ));
+
+        Loja loja = lojaExemplo(1L);
+        Produto produto = produtoExemplo(5L, new BigDecimal("10.00"));
+        Usuario funcionario = clienteExemplo(20L);
+        Estoque estoque = estoqueExemplo(loja, produto, 5);
+
+        when(lojaRepository.findById(1L)).thenReturn(Optional.of(loja));
+        when(usuarioRepository.findById(20L)).thenReturn(Optional.of(funcionario));
+        when(produtoRepository.findById(5L)).thenReturn(Optional.of(produto));
+        when(estoqueRepository.findByLojaIdAndProdutoIdWithLock(1L, 5L))
+                .thenReturn(Optional.of(estoque));
+        when(estoqueRepository.save(any(Estoque.class))).thenAnswer(inv -> inv.getArgument(0, Estoque.class));
+        when(pedidoRepository.save(any(Pedido.class))).thenAnswer(inv -> inv.getArgument(0, Pedido.class));
+
+        PedidoResponseDTO resposta = pedidoService.criar(request);
+
+        assertThat(resposta).isNotNull();
+        assertThat(resposta.getStatusPedido()).isEqualTo(StatusPedido.CRIADO);
+        assertThat(resposta.getClienteId()).isEqualTo(20L);
+        verify(pedidoRepository).save(any(Pedido.class));
+    }
+
+    @Test
+    @DisplayName("GERENTE pode criar pedido")
+    void gerentePodeCriarPedido() {
+        autenticarComo(30L, "gerente@teste.com", PerfilUsuario.GERENTE, 1L);
+
+        PedidoRequestDTO request = novoPedidoRequest(1L, CanalPedido.BALCAO, List.of(
+                new PedidoItemRequestDTO(5L, 1)
+        ));
+
+        Loja loja = lojaExemplo(1L);
+        Produto produto = produtoExemplo(5L, new BigDecimal("10.00"));
+        Usuario gerente = clienteExemplo(30L);
+        Estoque estoque = estoqueExemplo(loja, produto, 5);
+
+        when(lojaRepository.findById(1L)).thenReturn(Optional.of(loja));
+        when(usuarioRepository.findById(30L)).thenReturn(Optional.of(gerente));
+        when(produtoRepository.findById(5L)).thenReturn(Optional.of(produto));
+        when(estoqueRepository.findByLojaIdAndProdutoIdWithLock(1L, 5L))
+                .thenReturn(Optional.of(estoque));
+        when(estoqueRepository.save(any(Estoque.class))).thenAnswer(inv -> inv.getArgument(0, Estoque.class));
+        when(pedidoRepository.save(any(Pedido.class))).thenAnswer(inv -> inv.getArgument(0, Pedido.class));
+
+        PedidoResponseDTO resposta = pedidoService.criar(request);
+
+        assertThat(resposta).isNotNull();
+        assertThat(resposta.getStatusPedido()).isEqualTo(StatusPedido.CRIADO);
+        assertThat(resposta.getClienteId()).isEqualTo(30L);
+        verify(pedidoRepository).save(any(Pedido.class));
+    }
+
+    @Test
     @DisplayName("Concorrencia: apenas um pedido criado quando estoque so atende uma requisicao")
     void concorrenciaDeEstoqueNaoPermiteDoisPedidos() {
         autenticarComo(10L, "cliente@teste.com", PerfilUsuario.CLIENTE, null);
@@ -366,21 +426,6 @@ class PedidoServiceTest {
 
         assertThatThrownBy(() -> pedidoService.criar(request))
                 .isInstanceOf(AccessDeniedException.class);
-        verify(pedidoRepository, never()).save(any(Pedido.class));
-    }
-
-    @Test
-    @DisplayName("Apenas CLIENTE pode criar pedido")
-    void apenasClientePodeCriarPedido() {
-        autenticarComo(2L, "gerente@teste.com", PerfilUsuario.GERENTE, 3L);
-
-        PedidoRequestDTO request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
-                new PedidoItemRequestDTO(5L, 1)
-        ));
-
-        assertThatThrownBy(() -> pedidoService.criar(request))
-                .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("Apenas clientes");
         verify(pedidoRepository, never()).save(any(Pedido.class));
     }
 

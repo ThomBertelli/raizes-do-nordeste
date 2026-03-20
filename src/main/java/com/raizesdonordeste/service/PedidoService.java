@@ -120,7 +120,11 @@ public class PedidoService {
         validarRequestCriacao(request);
 
         UsuarioAutenticado principal = securityContextService.getRequiredPrincipal();
-        pedidoAuthorization.exigirCliente(principal);
+        if (principal.getPerfil() != PerfilUsuario.CLIENTE
+                && principal.getPerfil() != PerfilUsuario.FUNCIONARIO
+                && principal.getPerfil() != PerfilUsuario.GERENTE) {
+            throw new org.springframework.security.access.AccessDeniedException("Perfil não autorizado para criar pedido");
+        }
 
         Loja loja = lojaRepository.findById(request.getLojaId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Loja não encontrada"));
