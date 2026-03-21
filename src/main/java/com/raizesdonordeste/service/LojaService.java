@@ -7,6 +7,7 @@ import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.repository.LojaRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
+import com.raizesdonordeste.exception.RegraNegocioException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -27,7 +28,7 @@ public class LojaService {
     public LojaResponseDTO criar(LojaCreateDTO dto) {
         validarAutorizacaoGerenciaMatriz();
         if (lojaRepository.existsByCnpj(dto.getCnpj())) {
-            throw new IllegalArgumentException("CNPJ já cadastrado");
+            throw new RegraNegocioException("CNPJ já cadastrado");
         }
 
         Loja loja = Loja.builder()
@@ -58,7 +59,7 @@ public class LojaService {
 
         if (dto.getCnpj() != null && !dto.getCnpj().equals(loja.getCnpj())) {
             if (lojaRepository.existsByCnpj(dto.getCnpj())) {
-                throw new IllegalArgumentException("CNPJ já cadastrado");
+                throw new RegraNegocioException("CNPJ já cadastrado");
             }
             loja.setCnpj(dto.getCnpj());
         }

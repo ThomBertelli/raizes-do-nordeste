@@ -7,6 +7,7 @@ import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.repository.LojaRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
+import com.raizesdonordeste.exception.RegraNegocioException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -213,7 +214,7 @@ class LojaServiceTest {
         when(lojaRepository.existsByCnpj("12.345.678/0001-90")).thenReturn(true);
 
         assertThatThrownBy(() -> lojaService.criar(novaLojaCriacaoDTO()))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(RegraNegocioException.class)
                 .hasMessageContaining("CNPJ");
 
         verify(lojaRepository, never()).save(any());
@@ -230,7 +231,7 @@ class LojaServiceTest {
         LojaUpdateDTO dto = new LojaUpdateDTO(null, "99.999.999/0001-99", null, null);
 
         assertThatThrownBy(() -> lojaService.atualizar(1L, dto))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(RegraNegocioException.class)
                 .hasMessageContaining("CNPJ");
 
         verify(lojaRepository, never()).save(any());

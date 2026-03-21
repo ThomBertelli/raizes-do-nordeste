@@ -6,6 +6,7 @@ import com.raizesdonordeste.api.dto.produto.ProdutoResponseDTO;
 import com.raizesdonordeste.domain.model.Produto;
 import com.raizesdonordeste.domain.repository.ProdutoRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
+import com.raizesdonordeste.exception.RegraNegocioException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -126,7 +127,7 @@ class ProdutoServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> produtoService.criar(dto))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(RegraNegocioException.class)
                 .hasMessageContaining("Nome de produto já cadastrado");
 
         verify(produtoRepository, never()).save(any());

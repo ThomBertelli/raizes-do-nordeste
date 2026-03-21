@@ -19,6 +19,7 @@ import com.raizesdonordeste.domain.repository.LojaRepository;
 import com.raizesdonordeste.domain.repository.ProdutoRepository;
 import com.raizesdonordeste.domain.repository.UsuarioRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
+import com.raizesdonordeste.exception.RegraNegocioException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -152,7 +153,7 @@ public class PedidoService {
                     .orElseThrow(() -> new RecursoNaoEncontradoException("Estoque não encontrado para loja e produto informados"));
 
             if (estoque.getQuantidade() < item.getQuantidade()) {
-                throw new IllegalArgumentException("Estoque insuficiente para o produto informado");
+                throw new RegraNegocioException("Estoque insuficiente para o produto informado");
             }
 
             estoque.setQuantidade(estoque.getQuantidade() - item.getQuantidade());
@@ -185,10 +186,10 @@ public class PedidoService {
     @Transactional
     public PedidoResponseDTO atualizarStatusOperacaoLoja(Long pedidoId, PedidoStatusUpdateDTO request) {
         if (request == null || request.getStatusPedido() == null || request.getOrigem() == null) {
-            throw new IllegalArgumentException("statusPedido e origem são obrigatórios");
+            throw new RegraNegocioException("statusPedido e origem são obrigatórios");
         }
         if (request.getOrigem() != PedidoStatusUpdateDTO.OrigemStatusPedido.OPERACAO_LOJA) {
-            throw new IllegalArgumentException("Origem inválida para atualização manual do status");
+            throw new RegraNegocioException("Origem inválida para atualização manual do status");
         }
 
         UsuarioAutenticado principal = securityContextService.getRequiredPrincipal();
@@ -225,16 +226,16 @@ public class PedidoService {
 
     private void validarRequestCriacao(PedidoRequestDTO request) {
         if (request == null) {
-            throw new IllegalArgumentException("Dados do pedido são obrigatórios");
+            throw new RegraNegocioException("Dados do pedido são obrigatórios");
         }
         if (request.getCanalPedido() == null) {
-            throw new IllegalArgumentException("canalPedido é obrigatório");
+            throw new RegraNegocioException("canalPedido é obrigatório");
         }
         if (request.getLojaId() == null) {
-            throw new IllegalArgumentException("lojaId é obrigatório");
+            throw new RegraNegocioException("lojaId é obrigatório");
         }
         if (request.getItens() == null || request.getItens().isEmpty()) {
-            throw new IllegalArgumentException("itens são obrigatórios");
+            throw new RegraNegocioException("itens são obrigatórios");
         }
     }
 
@@ -248,7 +249,7 @@ public class PedidoService {
         if (statusAtual == StatusPedido.PRONTO && statusNovo == StatusPedido.ENTREGUE) {
             return;
         }
-        throw new IllegalArgumentException("Transição de status não permitida: " + statusAtual + " -> " + statusNovo);
+        throw new RegraNegocioException("Transição de status não permitida: " + statusAtual + " -> " + statusNovo);
     }
 
     private PedidoResponseDTO toDTO(Pedido pedido) {

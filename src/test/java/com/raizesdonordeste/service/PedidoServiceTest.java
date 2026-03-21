@@ -19,6 +19,7 @@ import com.raizesdonordeste.domain.repository.PedidoRepository;
 import com.raizesdonordeste.domain.repository.ProdutoRepository;
 import com.raizesdonordeste.domain.repository.UsuarioRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
+import com.raizesdonordeste.exception.RegraNegocioException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -318,7 +319,7 @@ class PedidoServiceTest {
         assertThat(estoque.getQuantidade()).isEqualTo(0);
 
         assertThatThrownBy(() -> pedidoService.criar(request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(RegraNegocioException.class)
                 .hasMessageContaining("Estoque insuficiente");
 
         verify(pedidoRepository, times(1)).save(any(Pedido.class));
@@ -335,7 +336,7 @@ class PedidoServiceTest {
         ));
 
         assertThatThrownBy(() -> pedidoService.criar(request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(RegraNegocioException.class)
                 .hasMessageContaining("canalPedido");
         verify(pedidoRepository, never()).save(any(Pedido.class));
     }
@@ -348,7 +349,7 @@ class PedidoServiceTest {
         PedidoRequestDTO request = novoPedidoRequest(1L, CanalPedido.APP, List.of());
 
         assertThatThrownBy(() -> pedidoService.criar(request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(RegraNegocioException.class)
                 .hasMessageContaining("itens");
         verify(pedidoRepository, never()).save(any(Pedido.class));
     }
@@ -408,7 +409,7 @@ class PedidoServiceTest {
                 .thenReturn(Optional.of(estoqueExemplo(loja, produto, 2)));
 
         assertThatThrownBy(() -> pedidoService.criar(request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(RegraNegocioException.class)
                 .hasMessageContaining("Estoque insuficiente");
         verify(pedidoRepository, never()).save(any(Pedido.class));
     }
@@ -586,7 +587,7 @@ class PedidoServiceTest {
         );
 
         assertThatThrownBy(() -> pedidoService.atualizarStatusOperacaoLoja(1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(RegraNegocioException.class)
                 .hasMessageContaining("Transição de status não permitida");
         verify(pedidoRepository, never()).save(any(Pedido.class));
     }
@@ -638,7 +639,7 @@ class PedidoServiceTest {
         );
 
         assertThatThrownBy(() -> pedidoService.atualizarStatusOperacaoLoja(1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(RegraNegocioException.class)
                 .hasMessageContaining("Origem inválida");
         verify(pedidoRepository, never()).save(any(Pedido.class));
     }

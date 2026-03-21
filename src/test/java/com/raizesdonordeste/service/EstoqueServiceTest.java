@@ -14,6 +14,7 @@ import com.raizesdonordeste.domain.repository.MovimentacaoEstoqueRepository;
 import com.raizesdonordeste.domain.repository.ProdutoRepository;
 import com.raizesdonordeste.domain.repository.UsuarioRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
+import com.raizesdonordeste.exception.RegraNegocioException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -249,7 +250,7 @@ class EstoqueServiceTest {
         when(estoqueRepository.findByLojaIdAndProdutoIdWithLock(3L, 10L)).thenReturn(Optional.of(estoque));
 
         assertThatThrownBy(() -> estoqueService.registrarSaida(null, 10L, 5, "Ajuste"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(RegraNegocioException.class)
                 .hasMessageContaining("Saldo insuficiente");
 
         verify(estoqueRepository, never()).save(any(Estoque.class));
@@ -355,7 +356,7 @@ class EstoqueServiceTest {
         autenticar(2L, "gerente@teste.com", PerfilUsuario.GERENTE, 3L);
 
         assertThatThrownBy(() -> estoqueService.registrarEntrada(null, 10L, 0, "Reposição"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(RegraNegocioException.class)
                 .hasMessageContaining("Quantidade deve ser maior que zero");
 
         verify(estoqueRepository, never()).findByLojaIdAndProdutoIdWithLock(anyLong(), anyLong());

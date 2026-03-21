@@ -6,6 +6,7 @@ import com.raizesdonordeste.api.dto.produto.ProdutoResponseDTO;
 import com.raizesdonordeste.domain.model.Produto;
 import com.raizesdonordeste.domain.repository.ProdutoRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
+import com.raizesdonordeste.exception.RegraNegocioException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -26,7 +27,7 @@ public class ProdutoService {
     @Transactional
     public ProdutoResponseDTO criar(ProdutoCreateDTO dto) {
         if (produtoRepository.existsByNome(dto.getNome())) {
-            throw new IllegalArgumentException("Nome de produto já cadastrado");
+            throw new RegraNegocioException("Nome de produto já cadastrado");
         }
 
         Produto produto = Produto.builder()
@@ -51,7 +52,7 @@ public class ProdutoService {
 
         if (dados.getNome() != null && !dados.getNome().equals(produto.getNome())) {
             if (produtoRepository.existsByNome(dados.getNome())) {
-                throw new IllegalArgumentException("Nome de produto já cadastrado");
+                throw new RegraNegocioException("Nome de produto já cadastrado");
             }
             produto.setNome(dados.getNome());
         }

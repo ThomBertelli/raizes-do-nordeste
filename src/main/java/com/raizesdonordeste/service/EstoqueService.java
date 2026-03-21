@@ -16,6 +16,7 @@ import com.raizesdonordeste.domain.repository.MovimentacaoEstoqueRepository;
 import com.raizesdonordeste.domain.repository.ProdutoRepository;
 import com.raizesdonordeste.domain.repository.UsuarioRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
+import com.raizesdonordeste.exception.RegraNegocioException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -61,7 +62,7 @@ public class EstoqueService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Estoque não encontrado para loja e produto informados"));
 
         if (quantidade > estoque.getQuantidade()) {
-            throw new IllegalArgumentException("Saldo insuficiente em estoque");
+            throw new RegraNegocioException("Saldo insuficiente em estoque");
         }
 
         estoque.setQuantidade(estoque.getQuantidade() - quantidade);
@@ -128,7 +129,7 @@ public class EstoqueService {
     private Long resolverLojaObrigatoriaParaMovimentacao(Long lojaId) {
         Long lojaAutorizadaId = validarAcessoEstoque(lojaId);
         if (lojaAutorizadaId == null) {
-            throw new IllegalArgumentException("lojaId é obrigatório para realizar movimentação de estoque");
+            throw new RegraNegocioException("lojaId é obrigatório para realizar movimentação de estoque");
         }
         return lojaAutorizadaId;
     }
@@ -187,7 +188,7 @@ public class EstoqueService {
 
     private void validarQuantidade(Integer quantidade) {
         if (quantidade == null || quantidade <= 0) {
-            throw new IllegalArgumentException("Quantidade deve ser maior que zero");
+            throw new RegraNegocioException("Quantidade deve ser maior que zero");
         }
     }
 
