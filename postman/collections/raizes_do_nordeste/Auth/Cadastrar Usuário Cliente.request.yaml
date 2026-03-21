@@ -1,0 +1,17 @@
+$kind: http-request
+url: http://localhost:8080/auth/cadastro
+method: POST
+body:
+  type: json
+  content: "{\r
+
+    \  \"nome\": \"Andre Amaral\",\r
+
+    \  \"email\": \"andrezinho1997666@gmail.com\",\r
+
+    \  \"senha\": \"12345678\",\r
+
+    \  \"consentimentoProgramaFidelidade\": false\r
+
+    }"
+order: 1000

@@ -1,0 +1,21 @@
+$kind: http-request
+url: http://localhost:8080/api/lojas
+method: POST
+headers:
+  Authorization: Bearer {{token}}
+queryParams:
+  - key: ""
+    value: null
+    disabled: true
+body:
+  type: json
+  content: "{\r
+
+    \  \"nome\": \"Barra Velha II\",\r
+
+    \  \"cnpj\": \"1234567891088\",\r
+
+    \  \"endereco\": \"Rua 15 de Novembro 720 - Remo - Barra Velha - SC \"\r
+
+    }"
+order: 1000

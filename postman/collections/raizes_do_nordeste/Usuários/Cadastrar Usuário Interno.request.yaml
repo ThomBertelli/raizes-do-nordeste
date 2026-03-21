@@ -1,0 +1,19 @@
+$kind: http-request
+url: http://localhost:8080/api/usuarios
+method: POST
+headers:
+  Authorization: " Bearer {{token}}"
+body:
+  type: json
+  content: "{\r
+
+    \  \"nome\": \"Gerencia Matriz\",\r
+
+    \  \"email\": \"gerenciamatriz@raizesnordeste.com.br\",\r
+
+    \  \"senha\": \"Gerencia@2026\",\r
+
+    \  \"perfil\": \"GERENCIA_MATRIZ\"\r
+
+    }"
+order: 1000

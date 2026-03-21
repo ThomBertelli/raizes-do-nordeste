@@ -1,0 +1,9 @@
+$kind: http-request
+url: http://localhost:8080/api/usuarios/3
+method: GET
+headers:
+  Authorization: " Bearer {{token}}"
+body:
+  type: json
+  content: ""
+order: 6000

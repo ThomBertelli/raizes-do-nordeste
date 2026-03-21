@@ -1,0 +1,9 @@
+$kind: http-request
+url: http://localhost:8080/api/produtos/3
+method: DELETE
+headers:
+  Authorization: Bearer {{token}}
+body:
+  type: json
+  content: ""
+order: 4000

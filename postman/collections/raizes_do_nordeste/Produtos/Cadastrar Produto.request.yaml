@@ -1,0 +1,17 @@
+$kind: http-request
+url: http://localhost:8080/api/produtos
+method: POST
+headers:
+  Authorization: Bearer {{token}}
+body:
+  type: json
+  content: "{\r
+
+    \  \"nome\": \"Buchada de Bode\",\r
+
+    \  \"descricao\": \" Prato forte feito com as vísceras do animal.\",\r
+
+    \  \"preco\": 18.00\r
+
+    }"
+order: 1000

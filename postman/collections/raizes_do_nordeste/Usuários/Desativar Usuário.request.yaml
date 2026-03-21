@@ -1,0 +1,9 @@
+$kind: http-request
+url: http://localhost:8080/api/usuarios/4/desativar
+method: PATCH
+headers:
+  Authorization: " Bearer {{token}}"
+body:
+  type: json
+  content: ""
+order: 2000

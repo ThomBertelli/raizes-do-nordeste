@@ -1,0 +1,18 @@
+$kind: http-request
+description: Se usuário do tipo GERENCIA_MATRIZ autenticado exibe todas as
+  informações, caso contrário somente as informações de nome, endereço e status
+  (ativa/inativa) serão apresentadas.
+url: http://localhost:8080/api/lojas
+method: GET
+headers:
+  - key: Authorization
+    value: Bearer {{token}}
+    disabled: true
+queryParams:
+  - key: ""
+    value: null
+    disabled: true
+body:
+  type: json
+  content: ""
+order: 4000

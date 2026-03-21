@@ -1,0 +1,22 @@
+$kind: http-request
+url: http://localhost:8080/api/lojas/1/ativar
+method: PATCH
+headers:
+  Authorization: Bearer
+    eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbkByYWl6ZXNkb25vcmRlc3RlLmNvbSIsImlhdCI6MTc3MzM5MDAwNCwiZXhwIjoxNzczNDc2NDA0fQ.28TX_jQjQ8ZXQ_iAz_aBI3NtRUaCo-B2OfIAP3wzO7raEmrOXdIgZ-T6jZJMvNanTC1RYX-ARA2QGnjdXctkqA
+queryParams:
+  - key: ""
+    value: null
+    disabled: true
+body:
+  type: json
+  content: "{\r
+
+    \  \"nome\": \"Barra Velha I\",\r
+
+    \  \"cnpj\": \"1234567891011\",\r
+
+    \  \"endereco\": \"Av 510 n580 - Centro - Barra Velha - SC \"\r
+
+    }"
+order: 3000

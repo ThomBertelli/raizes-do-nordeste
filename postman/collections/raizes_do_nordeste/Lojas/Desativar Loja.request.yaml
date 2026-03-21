@@ -1,0 +1,13 @@
+$kind: http-request
+url: http://localhost:8080/api/lojas/2/desativar
+method: PATCH
+headers:
+  Authorization: Bearer {{token}}
+queryParams:
+  - key: ""
+    value: null
+    disabled: true
+body:
+  type: json
+  content: ""
+order: 2000
