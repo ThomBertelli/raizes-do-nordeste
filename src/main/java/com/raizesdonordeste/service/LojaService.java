@@ -84,22 +84,22 @@ public class LojaService {
 
     @Transactional(readOnly = true)
     public LojaResponseDTO buscarPorId(Long id) {
-        return toDTO(buscarEntidade(id));
+        return toDTOForViewer(buscarEntidade(id));
     }
 
     @Transactional(readOnly = true)
     public Page<LojaResponseDTO> listarTodos(Pageable pageable) {
-        return lojaRepository.findAll(pageable).map(this::toDTO);
+        return lojaRepository.findAll(pageable).map(this::toDTOForViewer);
     }
 
     @Transactional(readOnly = true)
     public Page<LojaResponseDTO> buscarAtivas(Pageable pageable) {
-        return lojaRepository.findByAtiva(true, pageable).map(this::toDTO);
+        return lojaRepository.findByAtiva(true, pageable).map(this::toDTOForViewer);
     }
 
     @Transactional(readOnly = true)
     public Page<LojaResponseDTO> buscarPorNome(String nome, Pageable pageable) {
-        return lojaRepository.findByNomeContainingIgnoreCase(nome, pageable).map(this::toDTO);
+        return lojaRepository.findByNomeContainingIgnoreCase(nome, pageable).map(this::toDTOForViewer);
     }
 
     @Transactional
@@ -154,6 +154,22 @@ public class LojaService {
                 .dataCriacao(loja.getDataCriacao())
                 .dataAtualizacao(loja.getDataAtualizacao())
                 .build();
+    }
+
+    private LojaResponseDTO toBasicDTO(Loja loja) {
+        return LojaResponseDTO.builder()
+                .nome(loja.getNome())
+                .endereco(loja.getEndereco())
+                .ativa(loja.isAtiva())
+                .build();
+    }
+
+    private LojaResponseDTO toDTOForViewer(Loja loja) {
+        PerfilUsuario perfil = securityContextService.getActorPerfilOrNull();
+        if (perfil == PerfilUsuario.GERENCIA_MATRIZ) {
+            return toDTO(loja);
+        }
+        return toBasicDTO(loja);
     }
 
     private void validarAutorizacaoGerenciaMatriz() {

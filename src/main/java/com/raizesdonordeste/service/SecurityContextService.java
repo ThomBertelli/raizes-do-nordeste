@@ -59,8 +59,15 @@ public class SecurityContextService {
                 .filter(Objects::nonNull)
                 .filter(authority -> authority.startsWith("ROLE_"))
                 .map(authority -> authority.substring(5))
+                .map(authority -> {
+                    try {
+                        return PerfilUsuario.valueOf(authority);
+                    } catch (IllegalArgumentException ex) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
                 .findFirst()
-                .map(PerfilUsuario::valueOf)
                 .orElse(null);
     }
 
