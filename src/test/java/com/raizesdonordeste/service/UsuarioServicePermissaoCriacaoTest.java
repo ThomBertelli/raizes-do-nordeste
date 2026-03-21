@@ -7,6 +7,8 @@ import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.model.Usuario;
 import com.raizesdonordeste.domain.repository.LojaRepository;
 import com.raizesdonordeste.domain.repository.UsuarioRepository;
+import com.raizesdonordeste.exception.EmailJaCadastradoException;
+import com.raizesdonordeste.exception.RegraNegocioException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -232,7 +234,7 @@ class UsuarioServicePermissaoCriacaoTest {
         UsuarioCreateDTO dto = novoUsuarioDto(PerfilUsuario.FUNCIONARIO, "duplicado@mail.com");
 
         assertThatThrownBy(() -> usuarioService.criar(dto))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(EmailJaCadastradoException.class);
 
         verify(usuarioRepository, never()).save(any());
     }
