@@ -38,6 +38,9 @@ class ProdutoServiceTest {
     @Mock
     private ProdutoRepository produtoRepository;
 
+    @Mock
+    private SecurityContextService securityContextService;
+
     @InjectMocks
     private ProdutoService produtoService;
 
@@ -532,5 +535,4 @@ class ProdutoServiceTest {
                 .build();
     }
 }
-
 

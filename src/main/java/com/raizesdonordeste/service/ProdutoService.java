@@ -7,6 +7,7 @@ import com.raizesdonordeste.domain.model.Produto;
 import com.raizesdonordeste.domain.repository.ProdutoRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -16,9 +17,11 @@ import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProdutoService {
 
     private final ProdutoRepository produtoRepository;
+    private final SecurityContextService securityContextService;
 
     @Transactional
     public ProdutoResponseDTO criar(ProdutoCreateDTO dto) {
@@ -34,6 +37,11 @@ public class ProdutoService {
                 .build();
 
         Produto salvo = produtoRepository.save(produto);
+        log.info("Produto criado: produtoId={}, ativo={}, actorId={}, actorPerfil={}",
+                salvo.getId(),
+                salvo.isAtivo(),
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
         return converterParaDTO(salvo);
     }
 
@@ -57,6 +65,11 @@ public class ProdutoService {
         }
 
         Produto atualizado = produtoRepository.save(produto);
+        log.info("Produto atualizado: produtoId={}, ativo={}, actorId={}, actorPerfil={}",
+                atualizado.getId(),
+                atualizado.isAtivo(),
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
         return converterParaDTO(atualizado);
     }
 
@@ -95,6 +108,10 @@ public class ProdutoService {
         Produto produto = buscarEntidade(id);
         produto.setAtivo(true);
         produtoRepository.save(produto);
+        log.info("Produto ativado: produtoId={}, actorId={}, actorPerfil={}",
+                id,
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
     }
 
     @Transactional
@@ -102,6 +119,10 @@ public class ProdutoService {
         Produto produto = buscarEntidade(id);
         produto.setAtivo(false);
         produtoRepository.save(produto);
+        log.info("Produto desativado: produtoId={}, actorId={}, actorPerfil={}",
+                id,
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
     }
 
     @Transactional
@@ -110,6 +131,10 @@ public class ProdutoService {
             throw new RecursoNaoEncontradoException("Produto não encontrado");
         }
         produtoRepository.deleteById(id);
+        log.info("Produto deletado: produtoId={}, actorId={}, actorPerfil={}",
+                id,
+                securityContextService.getActorIdOrNull(),
+                securityContextService.getActorPerfilOrNull());
     }
 
     private Produto buscarEntidade(Long id) {
@@ -129,4 +154,3 @@ public class ProdutoService {
                 .build();
     }
 }
-
