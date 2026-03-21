@@ -1,5 +1,7 @@
 package com.raizesdonordeste.service;
 
+import com.raizesdonordeste.api.dto.estoque.EstoqueRequestDTO;
+import com.raizesdonordeste.api.dto.estoque.MovimentacaoEstoqueResponseDTO;
 import com.raizesdonordeste.config.UsuarioAutenticado;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.enums.TipoMovimentacaoEstoque;
@@ -191,5 +193,60 @@ public class EstoqueService {
 
     private UsuarioAutenticado obterUsuarioAutenticado() {
         return securityContextService.getRequiredPrincipal();
+    }
+
+    // Métodos para DTO
+
+    @Transactional(readOnly = true)
+    public Page<EstoqueRequestDTO> listarEstoquesPorLojaDTO(Long lojaId, Pageable pageable) {
+        return listarEstoquesPorLoja(lojaId, pageable)
+                .map(this::toEstoqueRespostaDTO);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<MovimentacaoEstoqueResponseDTO> listarMovimentacoesPorLojaDTO(Long lojaId, Long produtoId, Pageable pageable) {
+        return listarMovimentacoesPorLoja(lojaId, produtoId, pageable)
+                .map(this::toMovimentacaoRespostaDTO);
+    }
+
+    @Transactional
+    public EstoqueRequestDTO registrarEntradaDTO(Long lojaId, Long produtoId, Integer quantidade, String motivo) {
+        Estoque estoque = registrarEntrada(lojaId, produtoId, quantidade, motivo);
+        return toEstoqueRespostaDTO(estoque);
+    }
+
+    @Transactional
+    public EstoqueRequestDTO registrarSaidaDTO(Long lojaId, Long produtoId, Integer quantidade, String motivo) {
+        Estoque estoque = registrarSaida(lojaId, produtoId, quantidade, motivo);
+        return toEstoqueRespostaDTO(estoque);
+    }
+
+    private EstoqueRequestDTO toEstoqueRespostaDTO(Estoque estoque) {
+        return EstoqueRequestDTO.builder()
+                .id(estoque.getId())
+                .lojaId(estoque.getLoja().getId())
+                .lojaNome(estoque.getLoja().getNome())
+                .produtoId(estoque.getProduto().getId())
+                .produtoNome(estoque.getProduto().getNome())
+                .quantidade(estoque.getQuantidade())
+                .versao(estoque.getVersao())
+                .dataCriacao(estoque.getDataCriacao())
+                .dataAtualizacao(estoque.getDataAtualizacao())
+                .build();
+    }
+
+    private MovimentacaoEstoqueResponseDTO toMovimentacaoRespostaDTO(MovimentacaoEstoque movimentacao) {
+        return MovimentacaoEstoqueResponseDTO.builder()
+                .id(movimentacao.getId())
+                .estoqueId(movimentacao.getEstoque().getId())
+                .lojaId(movimentacao.getEstoque().getLoja().getId())
+                .produtoId(movimentacao.getEstoque().getProduto().getId())
+                .tipo(movimentacao.getTipo())
+                .quantidade(movimentacao.getQuantidade())
+                .motivo(movimentacao.getMotivo())
+                .usuarioId(movimentacao.getUsuario().getId())
+                .usuarioNome(movimentacao.getUsuario().getNome())
+                .dataCriacao(movimentacao.getDataCriacao())
+                .build();
     }
 }

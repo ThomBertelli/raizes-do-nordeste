@@ -66,5 +66,10 @@ public class UsuarioController {
         usuarioService.desativar(id);
         return ResponseEntity.noContent().build();
     }
-}
 
+    @PatchMapping("/{id}/ativar")
+    public ResponseEntity<Void> ativar(@PathVariable Long id) {
+        usuarioService.ativar(id);
+        return ResponseEntity.noContent().build();
+    }
+}

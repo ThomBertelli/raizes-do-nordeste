@@ -3,8 +3,6 @@ package com.raizesdonordeste.api.controller;
 import com.raizesdonordeste.api.dto.estoque.EstoqueRequestDTO;
 import com.raizesdonordeste.api.dto.estoque.MovimentacaoEstoqueResponseDTO;
 import com.raizesdonordeste.api.dto.estoque.MovimentacaoEstoqueRequestDTO;
-import com.raizesdonordeste.domain.model.Estoque;
-import com.raizesdonordeste.domain.model.MovimentacaoEstoque;
 import com.raizesdonordeste.service.EstoqueService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,8 +30,7 @@ public class EstoqueController {
             @RequestParam(required = false) Long lojaId,
             @PageableDefault(size = 20, sort = "dataAtualizacao") Pageable pageable) {
 
-        Page<EstoqueRequestDTO> resposta = estoqueService.listarEstoquesPorLoja(lojaId, pageable)
-                .map(this::toEstoqueRespostaDTO);
+        Page<EstoqueRequestDTO> resposta = estoqueService.listarEstoquesPorLojaDTO(lojaId, pageable);
 
         return ResponseEntity.ok(resposta);
     }
@@ -45,8 +42,7 @@ public class EstoqueController {
             @PageableDefault(size = 20, sort = "dataCriacao") Pageable pageable) {
 
         Page<MovimentacaoEstoqueResponseDTO> resposta = estoqueService
-                .listarMovimentacoesPorLoja(lojaId, produtoId, pageable)
-                .map(this::toMovimentacaoRespostaDTO);
+                .listarMovimentacoesPorLojaDTO(lojaId, produtoId, pageable);
 
         return ResponseEntity.ok(resposta);
     }
@@ -56,9 +52,10 @@ public class EstoqueController {
             @RequestParam(required = false) Long lojaId,
             @Valid @RequestBody MovimentacaoEstoqueRequestDTO dto) {
 
-        Estoque estoque = estoqueService.registrarEntrada(lojaId, dto.getProdutoId(), dto.getQuantidade(), dto.getMotivo());
+        EstoqueRequestDTO resposta = estoqueService
+                .registrarEntradaDTO(lojaId, dto.getProdutoId(), dto.getQuantidade(), dto.getMotivo());
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(toEstoqueRespostaDTO(estoque));
+        return ResponseEntity.status(HttpStatus.CREATED).body(resposta);
     }
 
     @PostMapping("/saida")
@@ -66,38 +63,9 @@ public class EstoqueController {
             @RequestParam(required = false) Long lojaId,
             @Valid @RequestBody MovimentacaoEstoqueRequestDTO dto) {
 
-        Estoque estoque = estoqueService.registrarSaida(lojaId, dto.getProdutoId(), dto.getQuantidade(), dto.getMotivo());
+        EstoqueRequestDTO resposta = estoqueService
+                .registrarSaidaDTO(lojaId, dto.getProdutoId(), dto.getQuantidade(), dto.getMotivo());
 
-        return ResponseEntity.status(HttpStatus.OK).body(toEstoqueRespostaDTO(estoque));
-    }
-
-    private EstoqueRequestDTO toEstoqueRespostaDTO(Estoque estoque) {
-        return EstoqueRequestDTO.builder()
-                .id(estoque.getId())
-                .lojaId(estoque.getLoja().getId())
-                .lojaNome(estoque.getLoja().getNome())
-                .produtoId(estoque.getProduto().getId())
-                .produtoNome(estoque.getProduto().getNome())
-                .quantidade(estoque.getQuantidade())
-                .versao(estoque.getVersao())
-                .dataCriacao(estoque.getDataCriacao())
-                .dataAtualizacao(estoque.getDataAtualizacao())
-                .build();
-    }
-
-    private MovimentacaoEstoqueResponseDTO toMovimentacaoRespostaDTO(MovimentacaoEstoque movimentacao) {
-        return MovimentacaoEstoqueResponseDTO.builder()
-                .id(movimentacao.getId())
-                .estoqueId(movimentacao.getEstoque().getId())
-                .lojaId(movimentacao.getEstoque().getLoja().getId())
-                .produtoId(movimentacao.getEstoque().getProduto().getId())
-                .tipo(movimentacao.getTipo())
-                .quantidade(movimentacao.getQuantidade())
-                .motivo(movimentacao.getMotivo())
-                .usuarioId(movimentacao.getUsuario().getId())
-                .usuarioNome(movimentacao.getUsuario().getNome())
-                .dataCriacao(movimentacao.getDataCriacao())
-                .build();
+        return ResponseEntity.status(HttpStatus.OK).body(resposta);
     }
 }
-
