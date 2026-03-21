@@ -25,6 +25,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -123,7 +124,7 @@ public class PedidoService {
         if (principal.getPerfil() != PerfilUsuario.CLIENTE
                 && principal.getPerfil() != PerfilUsuario.FUNCIONARIO
                 && principal.getPerfil() != PerfilUsuario.GERENTE) {
-            throw new org.springframework.security.access.AccessDeniedException("Perfil não autorizado para criar pedido");
+            throw new AccessDeniedException("Perfil não autorizado para criar pedido");
         }
 
         Loja loja = lojaRepository.findById(request.getLojaId())
@@ -192,12 +193,12 @@ public class PedidoService {
 
         UsuarioAutenticado principal = securityContextService.getRequiredPrincipal();
         if (principal.getPerfil() != PerfilUsuario.FUNCIONARIO && principal.getPerfil() != PerfilUsuario.GERENTE) {
-            throw new org.springframework.security.access.AccessDeniedException("Perfil não autorizado para atualizar status do pedido");
+            throw new AccessDeniedException("Perfil não autorizado para atualizar status do pedido");
         }
 
         Pedido pedido = buscarEntidade(pedidoId);
         if (principal.getLojaId() == null || !principal.getLojaId().equals(pedido.getLoja().getId())) {
-            throw new org.springframework.security.access.AccessDeniedException("Acesso negado: pedido de outra loja");
+            throw new AccessDeniedException("Acesso negado: pedido de outra loja");
         }
 
         StatusPedido statusAtual = pedido.getStatusPedido();
