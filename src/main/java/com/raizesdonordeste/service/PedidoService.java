@@ -20,16 +20,23 @@ import com.raizesdonordeste.domain.repository.ProdutoRepository;
 import com.raizesdonordeste.domain.repository.UsuarioRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
 import com.raizesdonordeste.exception.RegraNegocioException;
+import com.raizesdonordeste.infra.request.IdempotentResponse;
+import com.raizesdonordeste.infra.request.RequestDeduplicationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HexFormat;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +50,7 @@ public class PedidoService {
     private final EstoqueRepository estoqueRepository;
     private final UsuarioRepository usuarioRepository;
     private final SecurityContextService securityContextService;
+    private final RequestDeduplicationService requestDeduplicationService;
 
     @Transactional(readOnly = true)
     public Page<PedidoResponseDTO> listarPorLoja(Long lojaId, CanalPedido canalPedido, StatusPedido statusPedido, Pageable pageable) {
@@ -128,6 +136,37 @@ public class PedidoService {
             throw new AccessDeniedException("Perfil não autorizado para criar pedido");
         }
 
+        return criarPedido(request, principal);
+    }
+
+    @Transactional
+    public IdempotentResponse<PedidoResponseDTO> criarComIdempotencia(PedidoRequestDTO request, String idempotencyKey) {
+        validarRequestCriacao(request);
+
+        UsuarioAutenticado principal = securityContextService.getRequiredPrincipal();
+        if (principal.getPerfil() != PerfilUsuario.CLIENTE
+                && principal.getPerfil() != PerfilUsuario.FUNCIONARIO
+                && principal.getPerfil() != PerfilUsuario.GERENTE) {
+            throw new AccessDeniedException("Perfil não autorizado para criar pedido");
+        }
+
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            return new IdempotentResponse<>(criarPedido(request, principal), HttpStatus.CREATED.value());
+        }
+
+        String requestHash = calcularHashRequest(request);
+
+        return requestDeduplicationService.execute(
+                idempotencyKey,
+                principal.getId(),
+                requestHash,
+                PedidoResponseDTO.class,
+                () -> criarPedido(request, principal),
+                HttpStatus.CREATED.value()
+        );
+    }
+
+    private PedidoResponseDTO criarPedido(PedidoRequestDTO request, UsuarioAutenticado principal) {
         Loja loja = lojaRepository.findById(request.getLojaId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Loja não encontrada"));
 
@@ -265,5 +304,26 @@ public class PedidoService {
                 .dataCriacao(pedido.getDataCriacao())
                 .dataAtualizacao(pedido.getDataAtualizacao())
                 .build();
+    }
+
+    private String calcularHashRequest(PedidoRequestDTO request) {
+        StringBuilder payload = new StringBuilder();
+        payload.append(request.getLojaId()).append('|')
+                .append(request.getCanalPedido());
+
+        for (var item : request.getItens()) {
+            payload.append('|')
+                    .append(item.getProdutoId())
+                    .append(':')
+                    .append(item.getQuantidade());
+        }
+
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(payload.toString().getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("Algoritmo SHA-256 indisponível", ex);
+        }
     }
 }

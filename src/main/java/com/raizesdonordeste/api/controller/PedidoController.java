@@ -5,6 +5,7 @@ import com.raizesdonordeste.api.dto.pedido.PedidoResponseDTO;
 import com.raizesdonordeste.api.dto.pedido.PedidoStatusUpdateDTO;
 import com.raizesdonordeste.domain.enums.CanalPedido;
 import com.raizesdonordeste.domain.enums.StatusPedido;
+import com.raizesdonordeste.infra.request.IdempotentResponse;
 import com.raizesdonordeste.service.PedidoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,8 +32,11 @@ public class PedidoController {
     private final PedidoService pedidoService;
 
     @PostMapping
-    public ResponseEntity<PedidoResponseDTO> criar(@Valid @RequestBody PedidoRequestDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(pedidoService.criar(dto));
+    public ResponseEntity<PedidoResponseDTO> criar(
+            @Valid @RequestBody PedidoRequestDTO dto,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        IdempotentResponse<PedidoResponseDTO> resposta = pedidoService.criarComIdempotencia(dto, idempotencyKey);
+        return ResponseEntity.status(resposta.statusCode()).body(resposta.body());
     }
 
     @GetMapping("/{id}")
