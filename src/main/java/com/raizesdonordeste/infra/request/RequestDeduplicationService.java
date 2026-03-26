@@ -4,15 +4,23 @@ import tools.jackson.databind.json.JsonMapper;
 import com.raizesdonordeste.exception.RegraNegocioException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Supplier;
 
 @Service
 @RequiredArgsConstructor
 public class RequestDeduplicationService {
+
+    private static final int REQUEST_HASH_LENGTH = 64;
+    private static final long PROCESSING_TIMEOUT_SECONDS = 120;
+    private static final long FAILED_RETRY_SECONDS = 30;
 
     private final RequestDeduplicationRepository repository;
     private final JsonMapper objectMapper;
@@ -28,6 +36,8 @@ public class RequestDeduplicationService {
             return new IdempotentResponse<>(supplier.get(), statusCode);
         }
 
+        validarHashFormat(requestHash);
+
         RequestExecutionRecord created = criarRegistroProcessando(idempotencyKey, usuarioId, requestHash);
         if (created == null) {
             RequestExecutionRecord existing = buscarRegistro(idempotencyKey, usuarioId);
@@ -35,6 +45,10 @@ public class RequestDeduplicationService {
                 throw new RegraNegocioException("Falha ao recuperar requisição idempotente existente");
             }
             validarHashCompatavel(existing, requestHash);
+            IdempotentResponse<T> takeover = tentarTakeover(existing, idempotencyKey, usuarioId, requestHash, responseType, supplier, statusCode);
+            if (takeover != null) {
+                return takeover;
+            }
             return responderExistente(existing, responseType);
         }
 
@@ -44,13 +58,60 @@ public class RequestDeduplicationService {
             created.setResponseBody(responseBody);
             created.setStatusCode(statusCode);
             created.setStatus(ExecutionStatus.SUCCESS);
-            repository.save(created);
             return new IdempotentResponse<>(response, statusCode);
         } catch (RuntimeException ex) {
-            created.setResponseBody(ex.getMessage() != null ? ex.getMessage() : "Falha inesperada");
-            created.setStatusCode(500);
+            created.setResponseBody(serializar(erroPayload(ex)));
+            created.setStatusCode(resolverStatusCode(ex));
             created.setStatus(ExecutionStatus.FAILED);
-            repository.save(created);
+            throw ex;
+        }
+    }
+
+    private <T> IdempotentResponse<T> tentarTakeover(RequestExecutionRecord existing,
+                                                     String idempotencyKey,
+                                                     Long usuarioId,
+                                                     String requestHash,
+                                                     Class<T> responseType,
+                                                     Supplier<T> supplier,
+                                                     int statusCode) {
+        if (existing.getStatus() == ExecutionStatus.PROCESSING && isProcessingExpired(existing)) {
+            return executarTakeover(existing, idempotencyKey, usuarioId, requestHash, responseType, supplier, statusCode);
+        }
+        if (existing.getStatus() == ExecutionStatus.FAILED && isFailedRetryable(existing)) {
+            return executarTakeover(existing, idempotencyKey, usuarioId, requestHash, responseType, supplier, statusCode);
+        }
+        return null;
+    }
+
+    private <T> IdempotentResponse<T> executarTakeover(RequestExecutionRecord existing,
+                                                       String idempotencyKey,
+                                                       Long usuarioId,
+                                                       String requestHash,
+                                                       Class<T> responseType,
+                                                       Supplier<T> supplier,
+                                                       int statusCode) {
+        repository.delete(existing);
+        repository.flush();
+
+        RequestExecutionRecord created = criarRegistroProcessando(idempotencyKey, usuarioId, requestHash);
+        if (created == null) {
+            RequestExecutionRecord refreshed = buscarRegistro(idempotencyKey, usuarioId);
+            if (refreshed == null) {
+                throw new RegraNegocioException("Falha ao recuperar requisição idempotente existente");
+            }
+            return responderExistente(refreshed, responseType);
+        }
+
+        try {
+            T response = supplier.get();
+            created.setResponseBody(serializar(response));
+            created.setStatusCode(statusCode);
+            created.setStatus(ExecutionStatus.SUCCESS);
+            return new IdempotentResponse<>(response, statusCode);
+        } catch (RuntimeException ex) {
+            created.setResponseBody(serializar(erroPayload(ex)));
+            created.setStatusCode(resolverStatusCode(ex));
+            created.setStatus(ExecutionStatus.FAILED);
             throw ex;
         }
     }
@@ -58,10 +119,6 @@ public class RequestDeduplicationService {
     private RequestExecutionRecord criarRegistroProcessando(String idempotencyKey,
                                                             Long usuarioId,
                                                             String requestHash) {
-        if (requestHash == null || requestHash.isBlank()) {
-            throw new RegraNegocioException("requestHash é obrigatório quando Idempotency-Key é informado");
-        }
-
         RequestExecutionRecord novo = RequestExecutionRecord.builder()
                 .idempotencyKey(idempotencyKey)
                 .usuarioId(usuarioId)
@@ -90,6 +147,16 @@ public class RequestDeduplicationService {
         }
     }
 
+    private void validarHashFormat(String requestHash) {
+        if (requestHash == null || requestHash.isBlank()) {
+            throw new RegraNegocioException("requestHash é obrigatório quando Idempotency-Key é informado");
+        }
+        String normalized = requestHash.toLowerCase(Locale.ROOT);
+        if (normalized.length() != REQUEST_HASH_LENGTH || !normalized.matches("[0-9a-f]+")) {
+            throw new RegraNegocioException("requestHash inválido para Idempotency-Key");
+        }
+    }
+
     private <T> IdempotentResponse<T> responderExistente(RequestExecutionRecord existing, Class<T> responseType) {
         if (existing.getStatus() == ExecutionStatus.PROCESSING) {
             throw new RegraNegocioException("Requisição idempotente em processamento");
@@ -99,6 +166,31 @@ public class RequestDeduplicationService {
         }
         T body = deserializar(existing.getResponseBody(), responseType);
         return new IdempotentResponse<>(body, existing.getStatusCode());
+    }
+
+    private boolean isProcessingExpired(RequestExecutionRecord existing) {
+        LocalDateTime limite = LocalDateTime.now().minus(PROCESSING_TIMEOUT_SECONDS, ChronoUnit.SECONDS);
+        return existing.getCreatedAt() != null && existing.getCreatedAt().isBefore(limite);
+    }
+
+    private boolean isFailedRetryable(RequestExecutionRecord existing) {
+        LocalDateTime limite = LocalDateTime.now().minus(FAILED_RETRY_SECONDS, ChronoUnit.SECONDS);
+        return existing.getUpdatedAt() != null && existing.getUpdatedAt().isBefore(limite);
+    }
+
+    private int resolverStatusCode(RuntimeException ex) {
+        if (ex instanceof RegraNegocioException) {
+            return HttpStatus.BAD_REQUEST.value();
+        }
+        return HttpStatus.INTERNAL_SERVER_ERROR.value();
+    }
+
+    private IdempotencyErrorPayload erroPayload(RuntimeException ex) {
+        return new IdempotencyErrorPayload(
+                ex.getClass().getSimpleName(),
+                ex.getMessage() != null ? ex.getMessage() : "Falha inesperada",
+                LocalDateTime.now()
+        );
     }
 
     private String serializar(Object value) {
