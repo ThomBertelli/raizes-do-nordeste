@@ -26,5 +26,6 @@ public class PedidoRequestDTO {
     @NotEmpty(message = "itens são obrigatórios")
     @Valid
     private List<PedidoItemRequestDTO> itens;
-}
 
+    private java.math.BigDecimal moedasFidelidade;
+}

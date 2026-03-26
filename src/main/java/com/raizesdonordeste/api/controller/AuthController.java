@@ -4,6 +4,7 @@ import com.raizesdonordeste.api.dto.auth.CadastroRequestDTO;
 import com.raizesdonordeste.api.dto.auth.LoginRequestDTO;
 import com.raizesdonordeste.api.dto.auth.LoginResponseDTO;
 import com.raizesdonordeste.service.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,12 +22,20 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
+    @Operation(
+            summary = "Login",
+            description = "Publico."
+    )
     public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO loginRequestDTO) {
         LoginResponseDTO response = authService.autenticar(loginRequestDTO);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/cadastro")
+    @Operation(
+            summary = "Cadastro",
+            description = "Publico."
+    )
     public ResponseEntity<LoginResponseDTO> cadastro(@Valid @RequestBody CadastroRequestDTO cadastroRequestDTO) {
         LoginResponseDTO response = authService.cadastrar(cadastroRequestDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

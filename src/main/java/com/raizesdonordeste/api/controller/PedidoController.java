@@ -7,6 +7,8 @@ import com.raizesdonordeste.domain.enums.CanalPedido;
 import com.raizesdonordeste.domain.enums.StatusPedido;
 import com.raizesdonordeste.infra.request.IdempotentResponse;
 import com.raizesdonordeste.service.PedidoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,11 +29,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/pedidos")
 @RequiredArgsConstructor
+@SecurityRequirement(name = "bearerAuth")
 public class PedidoController {
 
     private final PedidoService pedidoService;
 
     @PostMapping
+    @Operation(
+            summary = "Criar pedido",
+            description = "Requer autenticacao. Perfis: CLIENTE, FUNCIONARIO, GERENTE."
+    )
     public ResponseEntity<PedidoResponseDTO> criar(
             @Valid @RequestBody PedidoRequestDTO dto,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
@@ -40,11 +47,19 @@ public class PedidoController {
     }
 
     @GetMapping("/{id}")
+    @Operation(
+            summary = "Buscar pedido por id",
+            description = "Requer autenticacao. Cliente acessa apenas o proprio pedido; loja acessa pedidos da propria loja."
+    )
     public ResponseEntity<PedidoResponseDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(pedidoService.buscarPorId(id));
     }
 
     @GetMapping
+    @Operation(
+            summary = "Listar pedidos",
+            description = "Requer autenticacao. Perfis: GERENCIA_MATRIZ, GERENTE."
+    )
     public ResponseEntity<Page<PedidoResponseDTO>> listarPorLoja(
             @RequestParam(required = false) Long lojaId,
             @RequestParam(required = false) CanalPedido canalPedido,
@@ -54,12 +69,20 @@ public class PedidoController {
     }
 
     @GetMapping("/meus")
+    @Operation(
+            summary = "Listar meus pedidos",
+            description = "Requer autenticacao. Perfil: CLIENTE."
+    )
     public ResponseEntity<Page<PedidoResponseDTO>> listarMeusPedidos(
             @PageableDefault(size = 20, sort = "dataCriacao") Pageable pageable) {
         return ResponseEntity.ok(pedidoService.listarMeusPedidos(pageable));
     }
 
     @PutMapping("/{id}/status")
+    @Operation(
+            summary = "Atualizar status do pedido",
+            description = "Requer autenticacao. Perfis: FUNCIONARIO, GERENTE."
+    )
     public ResponseEntity<PedidoResponseDTO> atualizarStatus(
             @PathVariable Long id,
             @Valid @RequestBody PedidoStatusUpdateDTO dto) {

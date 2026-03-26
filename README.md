@@ -1,116 +1,111 @@
 # Raízes do Nordeste API
 
-API Spring Boot do projeto **Raízes do Nordeste**, com autenticação JWT, JPA, PostgreSQL e migrations via Flyway.
+API moderna para gestão de lojas, produtos, pedidos, pagamentos e programa de fidelidade, desenvolvida em Spring Boot, com autenticação JWT, JPA, PostgreSQL e migrations via Flyway.
 
 ## Requisitos
 
 - Java 21
 - PostgreSQL
-- Maven Wrapper (`mvnw.cmd` já incluído no projeto)
+- Maven Wrapper (`mvnw.cmd` já incluído)
 
 ## Como rodar localmente
 
-### 1. Crie um banco vazio no PostgreSQL
+1. **Crie um banco vazio no PostgreSQL**
+   - Exemplo de nome: `raizes_do_nordeste`
+   - Ajuste a URL em `src/main/resources/application.properties` se necessário.
 
-Exemplo de nome usado hoje no projeto:
+2. **Configure a conexão**
+   - Edite `src/main/resources/application.properties`:
+     ```properties
+     spring.datasource.url=jdbc:postgresql://localhost:5455/raizes_do_nordeste
+     spring.datasource.username=postgres
+     spring.datasource.password=123456
+     ```
 
-- `raizes_do_nordeste`
+3. **Suba a aplicação**
+   ```powershell
+   Set-Location "C:\Users\Thomas\Desktop\Nova pasta\raizes_do_nordeste_api"
+   .\mvnw.cmd spring-boot:run
+   ```
 
-> O banco pode ter outro nome. Basta ajustar a URL em `src/main/resources/application.properties`.
+4. **Testes**
+   ```powershell
+   .\mvnw.cmd -q test
+   ```
 
-### 2. Ajuste a conexão com o banco
+## Features principais
 
-Arquivo: `src/main/resources/application.properties`
+- Cadastro e autenticação de usuários (JWT)
+- Perfis: ADMIN, GERENCIA_MATRIZ, GERENTE, FUNCIONARIO, CLIENTE
+- Gestão de lojas (CRUD, ativação/desativação)
+- Gestão de produtos (CRUD, ativação/desativação, busca por nome, descrição, faixa de preço)
+- Gestão de estoques por loja/produto, movimentação de entrada/saída
+- Pedidos: criação, listagem, detalhamento, histórico do cliente
+- Pagamentos integrados (mock)
+- Programa de fidelidade: acúmulo e resgate de moedas/pontos
+- Controle de permissões por perfil
+- Migrations Flyway e seed automático de admin
 
-Propriedades principais:
+## Regras de negócio
 
-- `spring.datasource.url`
-- `spring.datasource.username`
-- `spring.datasource.password`
+- **Usuários**:
+  - ADMIN: pode criar outros ADMIN, GERENCIA_MATRIZ, GERENTE, FUNCIONARIO
+  - GERENCIA_MATRIZ: pode criar GERENCIA_MATRIZ, GERENTE, FUNCIONARIO
+  - GERENTE: pode criar FUNCIONARIO vinculado à sua loja
+  - FUNCIONARIO: não pode criar usuários
+  - CLIENTE: só pode se cadastrar via endpoint público
+  - Só ADMIN pode criar outro ADMIN
+  - Nenhum perfil pode criar CLIENTE via API autenticada
+  - GERENTE/FUNCIONARIO obrigatoriamente vinculados a uma loja
 
-Exemplo atual:
+- **Acesso aos recursos**:
+  - Endpoints de lojas/produtos/estoques: restritos a perfis administrativos
+  - Pedidos:
+    - CLIENTE: pode criar e listar apenas seus próprios pedidos
+    - FUNCIONARIO/GERENTE: podem criar pedidos para clientes e listar pedidos da própria loja
+    - GERENCIA_MATRIZ: pode listar pedidos de qualquer loja
+  - Estoque: movimentação apenas por GERENTE/GERENCIA_MATRIZ
 
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5455/raizes_do_nordeste
-spring.datasource.username=postgres
-spring.datasource.password=123456
-```
+- **Produtos**:
+  - CRUD restrito a ADMIN, GERENTE, GERENCIA_MATRIZ
+  - Busca pública por nome, descrição, faixa de preço
 
-### 3. Suba a aplicação
+- **Fidelidade**:
+  - CLIENTE pode aderir ao programa no cadastro
+  - Acúmulo automático de moedas a cada pedido pago
+  - Resgate de moedas como desconto em pedidos
+  - Saldo de moedas controlado por usuário
+  - Não clientes não participam do programa
 
-```powershell
-Set-Location "C:\Users\Thomas\Desktop\Nova pasta\raizes_do_nordeste_api"
-.\mvnw.cmd spring-boot:run
-```
+- **Regras de validação**:
+  - Quantidade de estoque não pode ser negativa
+  - Não é possível movimentar estoque com quantidade <= 0
+  - Não é possível criar pedido com estoque insuficiente
+  - Consentimento de fidelidade obrigatório para CLIENTE
 
-Ou rode os testes de contexto:
+## Perfis e regras de acesso
 
-```powershell
-Set-Location "C:\Users\Thomas\Desktop\Nova pasta\raizes_do_nordeste_api"
-.\mvnw.cmd -q test
-```
+- **ADMIN**: acesso total, exceto criar CLIENTE
+- **GERENCIA_MATRIZ**: gerencia todas as lojas, cria GERENTE/FUNCIONARIO, movimenta estoque de qualquer loja
+- **GERENTE**: gerencia sua loja, cria FUNCIONARIO, movimenta estoque da própria loja
+- **FUNCIONARIO**: pode criar pedidos para clientes na loja vinculada
+- **CLIENTE**: pode se cadastrar, criar e listar seus próprios pedidos, aderir ao programa de fidelidade
 
-## Como o banco é criado
+## Endpoints principais
 
-O projeto usa Flyway com migration inicial em:
-
-- `src/main/resources/db/migration/V1__create_table_usuarios.sql`
-
-Apesar do nome do arquivo, essa migration cria o schema inicial completo do sistema:
-
-- `usuarios`
-- `produtos`
-- `lojas`
-- `pedidos`
-- `pagamentos`
-- `itens_pedido`
-- `fidelidades`
-- `estoques`
-
-### Banco vazio
-
-Se o banco estiver vazio, o Flyway executa a `V1` e cria toda a estrutura automaticamente.
-
-### Banco legado já existente
-
-O projeto está com:
-
-```properties
-spring.flyway.baseline-on-migrate=true
-spring.flyway.baseline-version=1
-```
-
-Isso permite adotar Flyway em um banco já existente, marcando o schema atual como versão `1`.
-
-> Recomendação: depois que todos os ambientes legados estiverem baselinados, desligue `spring.flyway.baseline-on-migrate` para evitar baseline automático em banco errado.
-
-## Seed inicial
-
-Na inicialização, a classe `com.raizesdonordeste.config.AdminDataInitializer` garante a criação de um usuário admin caso ainda não exista.
-
-As propriedades usadas são:
-
-```properties
-admin.nome=Administrador
-admin.email=admin@raizesdonordeste.com
-admin.senha=Admin@2026
-```
-
-Troque esses valores antes de usar o projeto em ambientes reais.
-
-## Próximas migrations
-
-Como o baseline e a migration inicial estão na versão `1`, a próxima alteração de banco deve ser criada como:
-
-- `V2__descricao_da_mudanca.sql`
-
-Exemplo:
-
-- `V2__adicionar_coluna_telefone_usuarios.sql`
+- `/auth/login` — Login (público)
+- `/auth/cadastro` — Cadastro de cliente (público)
+- `/api/usuarios` — CRUD de usuários (restrito)
+- `/api/lojas` — CRUD de lojas (restrito)
+- `/api/produtos` — CRUD e busca de produtos
+- `/api/estoques` — Movimentação e consulta de estoques
+- `/api/pedidos` — Criação e consulta de pedidos
+- `/pagamentos` — Pagamentos de pedidos
 
 ## Observações
 
-- `spring.jpa.hibernate.ddl-auto=none`: o schema não é criado pelo Hibernate.
-- O schema deve ser versionado apenas por migrations Flyway.
-- Para novos desenvolvedores, o fluxo recomendado é sempre começar com um banco vazio.
+- O schema do banco é criado e versionado via Flyway.
+- O projeto já cria um usuário admin padrão na inicialização (troque a senha antes de usar em produção).
+- Para novos desenvolvedores, recomenda-se sempre começar com banco vazio.
 
+Consulte a documentação dos endpoints (Swagger/OpenAPI) para detalhes de payloads e respostas.

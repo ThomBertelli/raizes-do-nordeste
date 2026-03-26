@@ -7,17 +7,22 @@ import com.raizesdonordeste.config.UsuarioAutenticado;
 import com.raizesdonordeste.domain.enums.StatusPedido;
 import com.raizesdonordeste.domain.enums.CanalPedido;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
+import com.raizesdonordeste.domain.enums.TipoTransacaoFidelidade;
 import com.raizesdonordeste.domain.model.ItemPedido;
 import com.raizesdonordeste.domain.model.Pedido;
 import com.raizesdonordeste.domain.model.Estoque;
 import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.model.Produto;
 import com.raizesdonordeste.domain.model.Usuario;
+import com.raizesdonordeste.domain.model.SaldoFidelidade;
+import com.raizesdonordeste.domain.model.TransacaoFidelidade;
 import com.raizesdonordeste.domain.repository.PedidoRepository;
 import com.raizesdonordeste.domain.repository.EstoqueRepository;
 import com.raizesdonordeste.domain.repository.LojaRepository;
 import com.raizesdonordeste.domain.repository.ProdutoRepository;
 import com.raizesdonordeste.domain.repository.UsuarioRepository;
+import com.raizesdonordeste.domain.repository.SaldoFidelidadeRepository;
+import com.raizesdonordeste.domain.repository.TransacaoFidelidadeRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
 import com.raizesdonordeste.exception.RegraNegocioException;
 import com.raizesdonordeste.infra.request.IdempotentResponse;
@@ -30,8 +35,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+
+import jakarta.persistence.OptimisticLockException;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -51,6 +61,12 @@ public class PedidoService {
     private final UsuarioRepository usuarioRepository;
     private final SecurityContextService securityContextService;
     private final RequestDeduplicationService requestDeduplicationService;
+    private final TransacaoFidelidadeRepository transacaoFidelidadeRepository;
+    private final SaldoFidelidadeRepository saldoFidelidadeRepository;
+    private final ConfiguracaoFidelidadeService configuracaoFidelidadeService;
+
+    private static final BigDecimal MOEDA_MINIMA = new BigDecimal("1.00");
+    private static final int MAX_TENTATIVAS_RETRY = 3;
 
     @Transactional(readOnly = true)
     public Page<PedidoResponseDTO> listarPorLoja(Long lojaId, CanalPedido canalPedido, StatusPedido statusPedido, Pageable pageable) {
@@ -179,6 +195,7 @@ public class PedidoService {
                 .canalPedido(request.getCanalPedido())
                 .statusPedido(StatusPedido.CRIADO)
                 .valorTotal(BigDecimal.ZERO)
+                .descontoFidelidade(BigDecimal.ZERO)
                 .itens(new ArrayList<>())
                 .build();
 
@@ -210,9 +227,14 @@ public class PedidoService {
             total = total.add(itemPedido.getSubtotal());
         }
 
-        pedido.setValorTotal(total);
+        BigDecimal descontoFidelidade = aplicarDescontoFidelidade(request, cliente, total);
+        BigDecimal totalFinal = total.subtract(descontoFidelidade);
+
+        pedido.setDescontoFidelidade(descontoFidelidade);
+        pedido.setValorTotal(totalFinal);
 
         Pedido salvo = pedidoRepository.save(pedido);
+        registrarResgateFidelidadeObrigatorio(salvo, descontoFidelidade);
         log.info("Pedido criado: pedidoId={}, lojaId={}, valorTotal={}, actorId={}, actorPerfil={}",
                 salvo.getId(),
                 salvo.getLoja().getId(),
@@ -247,6 +269,9 @@ public class PedidoService {
 
         pedido.setStatusPedido(statusNovo);
         Pedido salvo = pedidoRepository.save(pedido);
+        if (statusNovo == StatusPedido.ENTREGUE) {
+            creditarFidelidadeSeElegivel(salvo);
+        }
         log.info("Status do pedido atualizado: pedidoId={}, lojaId={}, statusAnterior={}, statusNovo={}, actorId={}, actorPerfil={}",
                 salvo.getId(),
                 salvo.getLoja().getId(),
@@ -301,9 +326,129 @@ public class PedidoService {
                 .canalPedido(pedido.getCanalPedido())
                 .statusPedido(pedido.getStatusPedido())
                 .valorTotal(pedido.getValorTotal())
+                .descontoFidelidade(pedido.getDescontoFidelidade())
                 .dataCriacao(pedido.getDataCriacao())
                 .dataAtualizacao(pedido.getDataAtualizacao())
                 .build();
+    }
+
+    private BigDecimal aplicarDescontoFidelidade(PedidoRequestDTO request, Usuario cliente, BigDecimal total) {
+        if (request.getMoedasFidelidade() == null) {
+            return BigDecimal.ZERO;
+        }
+        if (!cliente.isConsentimentoProgramaFidelidade()) {
+            throw new RegraNegocioException("Cliente não aderiu ao programa de fidelidade");
+        }
+        BigDecimal moedas = request.getMoedasFidelidade().setScale(2, RoundingMode.DOWN);
+        if (moedas.compareTo(MOEDA_MINIMA) < 0) {
+            throw new RegraNegocioException("Moedas de fidelidade devem ser a partir de 1.00");
+        }
+        if (moedas.compareTo(total) > 0) {
+            throw new RegraNegocioException("Desconto de fidelidade não pode exceder o valor do pedido");
+        }
+        BigDecimal saldo = obterSaldoMoedas(cliente.getId());
+        if (saldo.compareTo(moedas) < 0) {
+            throw new RegraNegocioException("Saldo de fidelidade insuficiente");
+        }
+        return moedas;
+    }
+
+    private void registrarResgateFidelidadeObrigatorio(Pedido pedido, BigDecimal moedas) {
+        if (moedas == null || moedas.compareTo(BigDecimal.ZERO) <= 0 || pedido.getId() == null) {
+            return;
+        }
+        executarComRetry(() -> {
+            if (transacaoFidelidadeRepository.existsByPedidoIdAndTipo(pedido.getId(), TipoTransacaoFidelidade.RESGATE)) {
+                return;
+            }
+            SaldoFidelidade saldo = carregarSaldoParaAtualizacao(pedido.getCliente());
+            if (saldo.getMoedas().compareTo(moedas) < 0) {
+                throw new RegraNegocioException("Saldo de fidelidade insuficiente");
+            }
+            TransacaoFidelidade transacao = TransacaoFidelidade.builder()
+                    .usuario(pedido.getCliente())
+                    .pedido(pedido)
+                    .tipo(TipoTransacaoFidelidade.RESGATE)
+                    .moedas(moedas)
+                    .build();
+            transacaoFidelidadeRepository.save(transacao);
+            saldo.setMoedas(saldo.getMoedas().subtract(moedas));
+            saldoFidelidadeRepository.save(saldo);
+        });
+    }
+
+    private void creditarFidelidadeSeElegivel(Pedido pedido) {
+        Usuario cliente = pedido.getCliente();
+        if (cliente == null || !cliente.isConsentimentoProgramaFidelidade()) {
+            return;
+        }
+        if (pedido.getId() != null && transacaoFidelidadeRepository
+                .existsByPedidoIdAndTipo(pedido.getId(), TipoTransacaoFidelidade.GANHO)) {
+            return;
+        }
+        BigDecimal moedas = calcularMoedasPorValorPago(pedido.getValorTotal());
+        if (moedas.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+        executarComRetry(() -> {
+            if (pedido.getId() != null && transacaoFidelidadeRepository
+                    .existsByPedidoIdAndTipo(pedido.getId(), TipoTransacaoFidelidade.GANHO)) {
+                return;
+            }
+            TransacaoFidelidade transacao = TransacaoFidelidade.builder()
+                    .usuario(cliente)
+                    .pedido(pedido)
+                    .tipo(TipoTransacaoFidelidade.GANHO)
+                    .moedas(moedas)
+                    .build();
+            transacaoFidelidadeRepository.save(transacao);
+            SaldoFidelidade saldo = carregarSaldoParaAtualizacao(cliente);
+            saldo.setMoedas(saldo.getMoedas().add(moedas));
+            saldoFidelidadeRepository.save(saldo);
+        });
+    }
+
+    private BigDecimal obterSaldoMoedas(Long usuarioId) {
+        return saldoFidelidadeRepository.findByUsuarioId(usuarioId)
+                .map(SaldoFidelidade::getMoedas)
+                .orElse(BigDecimal.ZERO)
+                .setScale(2, RoundingMode.DOWN);
+    }
+
+    private SaldoFidelidade carregarSaldoParaAtualizacao(Usuario cliente) {
+        return saldoFidelidadeRepository.findByUsuarioId(cliente.getId())
+                .orElseGet(() -> criarSaldoInicial(cliente));
+    }
+
+    private SaldoFidelidade criarSaldoInicial(Usuario cliente) {
+        SaldoFidelidade novoSaldo = SaldoFidelidade.builder()
+                .usuario(cliente)
+                .moedas(BigDecimal.ZERO.setScale(2, RoundingMode.DOWN))
+                .build();
+        try {
+            return saldoFidelidadeRepository.save(novoSaldo);
+        } catch (DataIntegrityViolationException ex) {
+            return saldoFidelidadeRepository.findByUsuarioId(cliente.getId())
+                    .orElseThrow(() -> new RegraNegocioException("Saldo de fidelidade indisponível"));
+        }
+    }
+
+    private void executarComRetry(Runnable acao) {
+        for (int tentativa = 1; tentativa <= MAX_TENTATIVAS_RETRY; tentativa++) {
+            try {
+                acao.run();
+                return;
+            } catch (OptimisticLockException | ObjectOptimisticLockingFailureException ex) {
+                if (tentativa == MAX_TENTATIVAS_RETRY) {
+                    throw ex;
+                }
+            }
+        }
+    }
+
+    private BigDecimal calcularMoedasPorValorPago(BigDecimal valorPago) {
+        BigDecimal taxa = configuracaoFidelidadeService.obterTaxaConversao();
+        return valorPago.multiply(taxa).setScale(2, RoundingMode.DOWN);
     }
 
     private String calcularHashRequest(PedidoRequestDTO request) {
@@ -311,7 +456,20 @@ public class PedidoService {
         payload.append(request.getLojaId()).append('|')
                 .append(request.getCanalPedido());
 
-        for (var item : request.getItens()) {
+        if (request.getMoedasFidelidade() != null) {
+            payload.append('|').append(request.getMoedasFidelidade());
+        }
+
+        var itensOrdenados = new ArrayList<>(request.getItens());
+        itensOrdenados.sort((a, b) -> {
+            int compare = a.getProdutoId().compareTo(b.getProdutoId());
+            if (compare != 0) {
+                return compare;
+            }
+            return Integer.compare(a.getQuantidade(), b.getQuantidade());
+        });
+
+        for (var item : itensOrdenados) {
             payload.append('|')
                     .append(item.getProdutoId())
                     .append(':')

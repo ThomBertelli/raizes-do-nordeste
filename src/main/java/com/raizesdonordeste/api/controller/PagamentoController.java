@@ -4,6 +4,8 @@ import com.raizesdonordeste.api.dto.pagamento.PagamentoRequestDTO;
 import com.raizesdonordeste.api.dto.pagamento.PagamentoResponseDTO;
 import com.raizesdonordeste.infra.request.IdempotentResponse;
 import com.raizesdonordeste.service.PagamentoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,11 +19,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/pagamentos")
 @RequiredArgsConstructor
+@SecurityRequirement(name = "bearerAuth")
 public class PagamentoController {
 
     private final PagamentoService pagamentoService;
 
     @PostMapping("/{pedidoId}")
+    @Operation(
+            summary = "Processar pagamento",
+            description = "Requer autenticacao. Perfil: CLIENTE."
+    )
     public ResponseEntity<PagamentoResponseDTO> processarPagamento(
             @PathVariable Long pedidoId,
             @Valid @RequestBody PagamentoRequestDTO request,

@@ -55,6 +55,10 @@ public class Pedido {
     @DecimalMin(value = "0.01", message = "Valor total deve ser maior que zero")
     private BigDecimal valorTotal;
 
+    @Column(nullable = false, precision = 10, scale = 2)
+    @Builder.Default
+    private BigDecimal descontoFidelidade = BigDecimal.ZERO;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime dataCriacao;

@@ -8,24 +8,31 @@ import com.raizesdonordeste.config.UsuarioAutenticado;
 import com.raizesdonordeste.domain.enums.CanalPedido;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.enums.StatusPedido;
+import com.raizesdonordeste.domain.enums.TipoTransacaoFidelidade;
 import com.raizesdonordeste.domain.model.Estoque;
 import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.model.Pedido;
 import com.raizesdonordeste.domain.model.Produto;
+import com.raizesdonordeste.domain.model.SaldoFidelidade;
+import com.raizesdonordeste.domain.model.TransacaoFidelidade;
 import com.raizesdonordeste.domain.model.Usuario;
 import com.raizesdonordeste.domain.repository.EstoqueRepository;
 import com.raizesdonordeste.domain.repository.LojaRepository;
 import com.raizesdonordeste.domain.repository.PedidoRepository;
 import com.raizesdonordeste.domain.repository.ProdutoRepository;
+import com.raizesdonordeste.domain.repository.SaldoFidelidadeRepository;
+import com.raizesdonordeste.domain.repository.TransacaoFidelidadeRepository;
 import com.raizesdonordeste.domain.repository.UsuarioRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
 import com.raizesdonordeste.exception.RegraNegocioException;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -69,6 +76,15 @@ class PedidoServiceTest {
     private UsuarioRepository usuarioRepository;
 
     @Mock
+    private TransacaoFidelidadeRepository transacaoFidelidadeRepository;
+
+    @Mock
+    private SaldoFidelidadeRepository saldoFidelidadeRepository;
+
+    @Mock
+    private ConfiguracaoFidelidadeService configuracaoFidelidadeService;
+
+    @Mock
     private SecurityContextService securityContextService;
 
     @Spy
@@ -80,6 +96,12 @@ class PedidoServiceTest {
     @AfterEach
     void cleanup() {
         SecurityContextHolder.clearContext();
+    }
+
+    @BeforeEach
+    void configurarTaxaFidelidade() {
+        lenient().when(configuracaoFidelidadeService.obterTaxaConversao())
+                .thenReturn(new BigDecimal("0.0300"));
     }
 
     // -------------------------------------------------------------------------
@@ -721,7 +743,7 @@ class PedidoServiceTest {
     }
 
     private PedidoRequestDTO novoPedidoRequest(Long lojaId, CanalPedido canalPedido, List<PedidoItemRequestDTO> itens) {
-        return new PedidoRequestDTO(lojaId, canalPedido, itens);
+        return new PedidoRequestDTO(lojaId, canalPedido, itens, null);
     }
 
     @Test
@@ -773,5 +795,97 @@ class PedidoServiceTest {
         assertThat(resultado.getContent().get(0).getLojaId()).isEqualTo(3L);
         verify(pedidoRepository).findByLojaIdAndCanalPedidoAndStatusPedidoOrderByDataCriacaoDescComRelacionamentos(
                 3L, CanalPedido.APP, StatusPedido.CRIADO, pageable);
+    }
+
+    @Test
+    @DisplayName("Aplica desconto de fidelidade quando saldo e valido")
+    void aplicaDescontoFidelidadeQuandoSaldoValido() {
+        autenticarComo(10L, "cliente@teste.com", PerfilUsuario.CLIENTE, null);
+
+        PedidoRequestDTO request = novoPedidoRequest(1L, CanalPedido.APP, List.of(
+                new PedidoItemRequestDTO(5L, 2)
+        ));
+        request.setMoedasFidelidade(new BigDecimal("3.00"));
+
+        Loja loja = lojaExemplo(1L);
+        Produto produto = produtoExemplo(5L, new BigDecimal("10.00"));
+        Usuario cliente = clienteExemplo(10L);
+        cliente.setConsentimentoProgramaFidelidade(true);
+        Estoque estoque = estoqueExemplo(loja, produto, 5);
+
+        when(lojaRepository.findById(1L)).thenReturn(Optional.of(loja));
+        when(usuarioRepository.findById(10L)).thenReturn(Optional.of(cliente));
+        when(produtoRepository.findById(5L)).thenReturn(Optional.of(produto));
+        when(estoqueRepository.findByLojaIdAndProdutoIdWithLock(1L, 5L))
+                .thenReturn(Optional.of(estoque));
+        when(estoqueRepository.save(any(Estoque.class))).thenAnswer(inv -> inv.getArgument(0, Estoque.class));
+        when(saldoFidelidadeRepository.findByUsuarioId(10L))
+                .thenReturn(Optional.of(SaldoFidelidade.builder()
+                        .id(1L)
+                        .usuario(cliente)
+                        .moedas(new BigDecimal("3.00"))
+                        .version(0L)
+                        .build()));
+        when(saldoFidelidadeRepository.save(any(SaldoFidelidade.class)))
+                .thenAnswer(inv -> inv.getArgument(0, SaldoFidelidade.class));
+        when(transacaoFidelidadeRepository.existsByPedidoIdAndTipo(99L, TipoTransacaoFidelidade.RESGATE))
+                .thenReturn(false);
+        when(transacaoFidelidadeRepository.save(any(TransacaoFidelidade.class)))
+                .thenAnswer(inv -> inv.getArgument(0, TransacaoFidelidade.class));
+        when(pedidoRepository.save(any(Pedido.class))).thenAnswer(inv -> {
+            Pedido pedido = inv.getArgument(0, Pedido.class);
+            pedido.setId(99L);
+            return pedido;
+        });
+
+        PedidoResponseDTO resposta = pedidoService.criar(request);
+
+        assertThat(resposta.getValorTotal()).isEqualTo(new BigDecimal("17.00"));
+        assertThat(resposta.getDescontoFidelidade()).isEqualTo(new BigDecimal("3.00"));
+
+        ArgumentCaptor<TransacaoFidelidade> transacaoCaptor = ArgumentCaptor.forClass(TransacaoFidelidade.class);
+        verify(transacaoFidelidadeRepository).save(transacaoCaptor.capture());
+        assertThat(transacaoCaptor.getValue().getTipo()).isEqualTo(TipoTransacaoFidelidade.RESGATE);
+        assertThat(transacaoCaptor.getValue().getMoedas()).isEqualTo(new BigDecimal("3.00"));
+    }
+
+    @Test
+    @DisplayName("Credita fidelidade ao entregar pedido")
+    void creditaFidelidadeAoEntregarPedido() {
+        autenticarComo(20L, "func@teste.com", PerfilUsuario.FUNCIONARIO, 5L);
+
+        Usuario cliente = clienteExemplo(10L);
+        cliente.setConsentimentoProgramaFidelidade(true);
+        Pedido pedido = pedidoExemplo(1L, lojaExemplo(5L), cliente);
+        pedido.setStatusPedido(StatusPedido.PRONTO);
+        pedido.setValorTotal(new BigDecimal("100.00"));
+
+        when(pedidoRepository.findByIdWithRelacionamentos(1L)).thenReturn(Optional.of(pedido));
+        when(pedidoRepository.save(any(Pedido.class))).thenAnswer(inv -> inv.getArgument(0, Pedido.class));
+        when(transacaoFidelidadeRepository.existsByPedidoIdAndTipo(1L, TipoTransacaoFidelidade.GANHO))
+                .thenReturn(false);
+        when(transacaoFidelidadeRepository.save(any(TransacaoFidelidade.class)))
+                .thenAnswer(inv -> inv.getArgument(0, TransacaoFidelidade.class));
+        when(saldoFidelidadeRepository.findByUsuarioId(10L))
+                .thenReturn(Optional.of(SaldoFidelidade.builder()
+                        .id(2L)
+                        .usuario(cliente)
+                        .moedas(new BigDecimal("1.00"))
+                        .version(0L)
+                        .build()));
+        when(saldoFidelidadeRepository.save(any(SaldoFidelidade.class)))
+                .thenAnswer(inv -> inv.getArgument(0, SaldoFidelidade.class));
+
+        PedidoResponseDTO resposta = pedidoService.atualizarStatusOperacaoLoja(1L, new PedidoStatusUpdateDTO(
+                StatusPedido.ENTREGUE,
+                PedidoStatusUpdateDTO.OrigemStatusPedido.OPERACAO_LOJA
+        ));
+
+        assertThat(resposta.getStatusPedido()).isEqualTo(StatusPedido.ENTREGUE);
+
+        ArgumentCaptor<TransacaoFidelidade> ganhoCaptor = ArgumentCaptor.forClass(TransacaoFidelidade.class);
+        verify(transacaoFidelidadeRepository).save(ganhoCaptor.capture());
+        assertThat(ganhoCaptor.getValue().getTipo()).isEqualTo(TipoTransacaoFidelidade.GANHO);
+        assertThat(ganhoCaptor.getValue().getMoedas()).isEqualTo(new BigDecimal("3.00"));
     }
 }

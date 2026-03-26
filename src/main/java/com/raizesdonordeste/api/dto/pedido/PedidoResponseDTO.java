@@ -26,7 +26,7 @@ public class PedidoResponseDTO {
     private CanalPedido canalPedido;
     private StatusPedido statusPedido;
     private BigDecimal valorTotal;
+    private BigDecimal descontoFidelidade;
     private LocalDateTime dataCriacao;
     private LocalDateTime dataAtualizacao;
 }
-
