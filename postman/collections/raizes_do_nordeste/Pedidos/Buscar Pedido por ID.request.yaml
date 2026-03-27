@@ -1,0 +1,7 @@
+$kind: http-request
+description: CLIENTE ve apenas o proprio pedido. GERENTE ve apenas pedidos da propria loja. GERENCIA_MATRIZ ve qualquer pedido.
+url: "{{base_url}}/api/pedidos/{{pedido_id}}"
+method: GET
+headers:
+  Authorization: Bearer {{token_cliente}}
+order: 1200

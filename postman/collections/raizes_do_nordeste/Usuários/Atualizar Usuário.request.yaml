@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{base_url}}/api/usuarios/{{usuario_id}}"
+method: PUT
+headers:
+  Authorization: Bearer {{token_gerencia_matriz}}
+body:
+  type: json
+  content: |
+    {
+      "nome": "Funcionario Atualizado",
+      "ativo": true
+    }
+order: 2500

@@ -1,0 +1,18 @@
+$kind: http-request
+description: GERENCIA_MATRIZ pode informar lojaId. GERENTE usa a propria loja vinculada.
+url: "{{base_url}}/api/estoques/saida"
+method: POST
+headers:
+  Authorization: Bearer {{token_gerencia_matriz}}
+queryParams:
+  - key: lojaId
+    value: "{{loja_id}}"
+body:
+  type: json
+  content: |
+    {
+      "produtoId": {{produto_id}},
+      "quantidade": 2,
+      "motivo": "Ajuste de inventario"
+    }
+order: 1300

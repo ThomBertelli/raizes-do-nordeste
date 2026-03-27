@@ -1,0 +1,13 @@
+$kind: http-request
+name: Login
+description: Login de cliente para testar meus pedidos, pagamentos e fidelidade.
+url: "{{base_url}}/auth/login"
+method: POST
+body:
+  type: json
+  content: |
+    {
+      "email": "cliente.postman@raizes.com",
+      "senha": "Cliente@2026"
+    }
+order: 2100

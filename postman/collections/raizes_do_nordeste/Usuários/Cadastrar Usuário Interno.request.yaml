@@ -1,19 +1,17 @@
 $kind: http-request
-url: http://localhost:8080/api/usuarios
+description: Use GERENCIA_MATRIZ ou ADMIN. GERENTE so pode criar FUNCIONARIO. CLIENTE nao pode ser criado por esta API.
+url: "{{base_url}}/api/usuarios"
 method: POST
 headers:
-  Authorization: " Bearer {{token}}"
+  Authorization: Bearer {{token_gerencia_matriz}}
 body:
   type: json
-  content: "{\r
-
-    \  \"nome\": \"Gerencia Matriz\",\r
-
-    \  \"email\": \"gerenciamatriz@raizesnordeste.com.br\",\r
-
-    \  \"senha\": \"Gerencia@2026\",\r
-
-    \  \"perfil\": \"GERENCIA_MATRIZ\"\r
-
-    }"
+  content: |
+    {
+      "nome": "Funcionario Postman",
+      "email": "funcionario.postman@raizes.com",
+      "senha": "Funcionario@2026",
+      "perfil": "FUNCIONARIO",
+      "lojaId": {{loja_id}}
+    }
 order: 1000

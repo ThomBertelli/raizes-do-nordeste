@@ -1,17 +1,14 @@
 $kind: http-request
-url: http://localhost:8080/api/produtos
+url: "{{base_url}}/api/produtos"
 method: POST
 headers:
-  Authorization: Bearer {{token}}
+  Authorization: Bearer {{token_gerencia_matriz}}
 body:
   type: json
-  content: "{\r
-
-    \  \"nome\": \"Buchada de Bode\",\r
-
-    \  \"descricao\": \" Prato forte feito com as vísceras do animal.\",\r
-
-    \  \"preco\": 18.00\r
-
-    }"
+  content: |
+    {
+      "nome": "Buchada de Bode",
+      "descricao": "Prato tipico com preparo tradicional nordestino.",
+      "preco": 18.00
+    }
 order: 1000

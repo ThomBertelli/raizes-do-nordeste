@@ -1,0 +1,14 @@
+$kind: http-request
+description: Somente FUNCIONARIO ou GERENTE da loja do pedido. Origem deve ser OPERACAO_LOJA.
+url: "{{base_url}}/api/pedidos/{{pedido_id}}/status"
+method: PUT
+headers:
+  Authorization: Bearer {{token_funcionario}}
+body:
+  type: json
+  content: |
+    {
+      "statusPedido": "PREPARO",
+      "origem": "OPERACAO_LOJA"
+    }
+order: 1500

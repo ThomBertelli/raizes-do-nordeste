@@ -1,0 +1,14 @@
+$kind: http-request
+description: Endpoint correto e DTO real de pagamento. O body aceita apenas valor.
+url: "{{base_url}}/pagamentos/{{pedido_id}}"
+method: POST
+headers:
+  Authorization: Bearer {{token_cliente}}
+  Idempotency-Key: "{{idempotency_key}}"
+body:
+  type: json
+  content: |
+    {
+      "valor": 50.00
+    }
+order: 1100

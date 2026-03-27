@@ -1,6 +1,6 @@
 $kind: http-request
-url: "{{base_url}}/api/usuarios/{{usuario_id}}"
+url: "{{base_url}}/api/fidelidade/taxa"
 method: GET
 headers:
   Authorization: Bearer {{token_gerencia_matriz}}
-order: 6000
+order: 1310

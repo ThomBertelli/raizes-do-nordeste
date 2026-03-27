@@ -1,0 +1,16 @@
+$kind: http-request
+description: GERENTE lista apenas sua loja. GERENCIA_MATRIZ pode filtrar qualquer loja.
+url: "{{base_url}}/api/pedidos"
+method: GET
+headers:
+  Authorization: Bearer {{token_gerencia_matriz}}
+queryParams:
+  - key: lojaId
+    value: "{{loja_id}}"
+  - key: canalPedido
+    value: APP
+    disabled: true
+  - key: statusPedido
+    value: CRIADO
+    disabled: true
+order: 1300

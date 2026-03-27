@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{base_url}}/api/fidelidade/saldo"
+method: GET
+headers:
+  Authorization: Bearer {{token_cliente}}
+order: 1200

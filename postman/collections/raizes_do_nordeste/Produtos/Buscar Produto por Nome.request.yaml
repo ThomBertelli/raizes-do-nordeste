@@ -1,0 +1,7 @@
+$kind: http-request
+url: "{{base_url}}/api/produtos/buscar"
+method: GET
+queryParams:
+  - key: nome
+    value: bode
+order: 2200

@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{base_url}}/api/produtos/faixa-preco"
+method: GET
+queryParams:
+  - key: precoMin
+    value: "10.00"
+  - key: precoMax
+    value: "30.00"
+order: 2400

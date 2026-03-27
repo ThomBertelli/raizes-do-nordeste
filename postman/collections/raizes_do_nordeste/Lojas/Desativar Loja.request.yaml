@@ -1,13 +1,7 @@
 $kind: http-request
-url: http://localhost:8080/api/lojas/2/desativar
+description: Pela regra real do servico, apenas GERENCIA_MATRIZ consegue executar.
+url: "{{base_url}}/api/lojas/{{loja_id}}/desativar"
 method: PATCH
 headers:
-  Authorization: Bearer {{token}}
-queryParams:
-  - key: ""
-    value: null
-    disabled: true
-body:
-  type: json
-  content: ""
+  Authorization: Bearer {{token_gerencia_matriz}}
 order: 2000

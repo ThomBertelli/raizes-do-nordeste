@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{base_url}}/api/usuarios/buscar"
+method: GET
+headers:
+  Authorization: Bearer {{token_gerencia_matriz}}
+queryParams:
+  - key: nome
+    value: Funcionario
+order: 6100

@@ -1,18 +1,15 @@
 $kind: http-request
-url: http://localhost:8080/api/lojas/1
+description: Pela regra real do servico, apenas GERENCIA_MATRIZ consegue executar.
+url: "{{base_url}}/api/lojas/{{loja_id}}"
 method: PUT
 headers:
-  Authorization: Bearer
-    eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbkByYWl6ZXNkb25vcmRlc3RlLmNvbSIsImlhdCI6MTc3MzM5MDAwNCwiZXhwIjoxNzczNDc2NDA0fQ.28TX_jQjQ8ZXQ_iAz_aBI3NtRUaCo-B2OfIAP3wzO7raEmrOXdIgZ-T6jZJMvNanTC1RYX-ARA2QGnjdXctkqA
+  Authorization: Bearer {{token_gerencia_matriz}}
 body:
   type: json
-  content: "{\r
-
-    \  \"endereco\": \"Av 510 n 7800 - Centro - Barra Velha - SC \"\r
-
-    }"
-auth:
-  type: bearer
-  credentials:
-    token: eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbkByYWl6ZXNkb25vcmRlc3RlLmNvbSIsImlhdCI6MTc3MzUxNjQ5OSwiZXhwIjoxNzczNjAyODk5fQ.7fduELUGQ58CPzxUKO3F9H9XcNeTTbwmJM60e0rzWc4P659phJLKJhPDuMWDkrrDQ-i7FscpjiZ-Tl_mkX36bQ
+  content: |
+    {
+      "nome": "Loja Matriz Atualizada",
+      "endereco": "Rua Atualizada, 500",
+      "ativa": true
+    }
 order: 8000

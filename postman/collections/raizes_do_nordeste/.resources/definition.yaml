@@ -1,3 +1,13 @@
 $kind: collection
+name: raizes_do_nordeste
 variables:
-  token: ""
+  base_url: http://localhost:8080
+  token_cliente: ""
+  token_gerencia_matriz: ""
+  token_gerente: ""
+  token_funcionario: ""
+  loja_id: "1"
+  produto_id: "1"
+  pedido_id: "1"
+  usuario_id: "1"
+  idempotency_key: req-001

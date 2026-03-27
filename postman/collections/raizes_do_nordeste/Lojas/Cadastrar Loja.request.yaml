@@ -1,21 +1,15 @@
 $kind: http-request
-url: http://localhost:8080/api/lojas
+description: Pela regra real do servico, apenas GERENCIA_MATRIZ consegue executar.
+url: "{{base_url}}/api/lojas"
 method: POST
 headers:
-  Authorization: Bearer {{token}}
-queryParams:
-  - key: ""
-    value: null
-    disabled: true
+  Authorization: Bearer {{token_gerencia_matriz}}
 body:
   type: json
-  content: "{\r
-
-    \  \"nome\": \"Barra Velha II\",\r
-
-    \  \"cnpj\": \"1234567891088\",\r
-
-    \  \"endereco\": \"Rua 15 de Novembro 720 - Remo - Barra Velha - SC \"\r
-
-    }"
+  content: |
+    {
+      "nome": "Loja Postman",
+      "cnpj": "11222333000181",
+      "endereco": "Rua das Mangueiras, 100"
+    }
 order: 1000

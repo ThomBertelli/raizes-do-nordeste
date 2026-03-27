@@ -1,9 +1,6 @@
 $kind: http-request
-url: http://localhost:8080/api/usuarios
+url: "{{base_url}}/api/usuarios"
 method: GET
 headers:
-  Authorization: " Bearer {{token}}"
-body:
-  type: json
-  content: ""
+  Authorization: Bearer {{token_gerencia_matriz}}
 order: 5000

@@ -1,17 +1,14 @@
 $kind: http-request
-url: http://localhost:8080/auth/cadastro
+description: Cadastro publico de cliente. Retorna token JWT no corpo.
+url: "{{base_url}}/auth/cadastro"
 method: POST
 body:
   type: json
-  content: "{\r
-
-    \  \"nome\": \"Andre Amaral\",\r
-
-    \  \"email\": \"andrezinho1997666@gmail.com\",\r
-
-    \  \"senha\": \"12345678\",\r
-
-    \  \"consentimentoProgramaFidelidade\": false\r
-
-    }"
+  content: |
+    {
+      "nome": "Cliente Postman",
+      "email": "cliente.postman@raizes.com",
+      "senha": "Cliente@2026",
+      "consentimentoProgramaFidelidade": true
+    }
 order: 1000

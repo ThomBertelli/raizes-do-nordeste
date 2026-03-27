@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{base_url}}/api/estoques/movimentacoes"
+method: GET
+headers:
+  Authorization: Bearer {{token_gerencia_matriz}}
+queryParams:
+  - key: lojaId
+    value: "{{loja_id}}"
+    disabled: true
+  - key: produtoId
+    value: "{{produto_id}}"
+    disabled: true
+order: 1100

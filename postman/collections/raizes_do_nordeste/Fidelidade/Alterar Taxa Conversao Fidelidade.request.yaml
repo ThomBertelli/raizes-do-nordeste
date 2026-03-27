@@ -1,0 +1,13 @@
+$kind: http-request
+description: Somente GERENCIA_MATRIZ. DTO exige taxaConversao e o endpoint usa PATCH.
+url: "{{base_url}}/api/fidelidade/taxa"
+method: PATCH
+headers:
+  Authorization: Bearer {{token_gerencia_matriz}}
+body:
+  type: json
+  content: |
+    {
+      "taxaConversao": 0.0500
+    }
+order: 1300

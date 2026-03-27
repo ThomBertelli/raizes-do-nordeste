@@ -1,9 +1,6 @@
 $kind: http-request
-url: http://localhost:8080/api/usuarios/4/ativar
+url: "{{base_url}}/api/usuarios/{{usuario_id}}/ativar"
 method: PATCH
 headers:
-  Authorization: " Bearer {{token}}"
-body:
-  type: json
-  content: ""
+  Authorization: Bearer {{token_gerencia_matriz}}
 order: 3000
