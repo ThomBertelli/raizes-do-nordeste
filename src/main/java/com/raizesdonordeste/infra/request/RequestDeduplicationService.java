@@ -3,6 +3,8 @@ package com.raizesdonordeste.infra.request;
 import tools.jackson.databind.json.JsonMapper;
 import com.raizesdonordeste.exception.RegraNegocioException;
 import lombok.RequiredArgsConstructor;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,9 @@ public class RequestDeduplicationService {
 
     private final RequestDeduplicationRepository repository;
     private final JsonMapper objectMapper;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Transactional
     public <T> IdempotentResponse<T> execute(String idempotencyKey,
@@ -131,6 +136,7 @@ public class RequestDeduplicationService {
         try {
             return repository.saveAndFlush(novo);
         } catch (DataIntegrityViolationException ex) {
+            entityManager.clear();
             return null;
         }
     }

@@ -1,17 +1,23 @@
 $kind: http-request
-description: Use GERENCIA_MATRIZ ou ADMIN. GERENTE so pode criar FUNCIONARIO. CLIENTE nao pode ser criado por esta API.
+name: Cadastrar Usuário Interno
+description: Use GERENCIA_MATRIZ ou ADMIN. GERENTE so pode criar FUNCIONARIO.
+  CLIENTE nao pode ser criado por esta API.
 url: "{{base_url}}/api/usuarios"
 method: POST
 headers:
-  Authorization: Bearer {{token_gerencia_matriz}}
+  - key: Authorization
+    value: Bearer {{token_gerencia_matriz}}
+    disabled: true
+  - key: Authorization
+    value: Bearer {{token_gerente}}
 body:
   type: json
   content: |
     {
-      "nome": "Funcionario Postman",
-      "email": "funcionario.postman@raizes.com",
-      "senha": "Funcionario@2026",
-      "perfil": "FUNCIONARIO",
-      "lojaId": {{loja_id}}
+      "nome": "Marcos Paulo Bezerra",
+      "email": "marcospaulo@raizesnordeste.com.br",
+      "senha": "Mpaulo@2026",
+      "perfil": "FUNCIONARIO"
+
     }
 order: 1000

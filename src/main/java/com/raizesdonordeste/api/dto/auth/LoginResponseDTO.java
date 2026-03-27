@@ -18,5 +18,6 @@ public class LoginResponseDTO {
     private String nome;
     private String email;
     private PerfilUsuario perfil;
+    private Long lojaId;
 }
 

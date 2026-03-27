@@ -1,9 +1,14 @@
 $kind: http-request
+name: Listar Pedidos da Loja
 description: GERENTE lista apenas sua loja. GERENCIA_MATRIZ pode filtrar qualquer loja.
 url: "{{base_url}}/api/pedidos"
 method: GET
 headers:
-  Authorization: Bearer {{token_gerencia_matriz}}
+  - key: Authorization
+    value: Bearer {{token_gerencia_matriz}}
+    disabled: true
+  - key: Authorization
+    value: Bearer {{token_gerente}}
 queryParams:
   - key: lojaId
     value: "{{loja_id}}"

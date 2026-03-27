@@ -3,6 +3,7 @@ package com.raizesdonordeste.service;
 import com.raizesdonordeste.api.dto.usuario.UsuarioUpdateDTO;
 import com.raizesdonordeste.api.dto.usuario.UsuarioCreateDTO;
 import com.raizesdonordeste.api.dto.usuario.UsuarioResponseDTO;
+import com.raizesdonordeste.config.UsuarioAutenticado;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.model.Usuario;
@@ -38,7 +39,8 @@ public class UsuarioService {
         }
 
         boolean consentimentoFidelidade = resolverConsentimentoFidelidadeCriacao(dto);
-        Loja lojaVinculada = resolverLojaPorPerfil(dto.getPerfil(), dto.getLojaId());
+        Long lojaIdResolvida = resolverLojaIdCriacao(dto);
+        Loja lojaVinculada = resolverLojaPorPerfil(dto.getPerfil(), lojaIdResolvida);
 
         Usuario usuario = Usuario.builder()
                 .nome(dto.getNome())
@@ -236,6 +238,23 @@ public class UsuarioService {
         if (!permitido) {
             throw new AccessDeniedException("Perfil sem permissão para criar usuário com o perfil informado");
         }
+    }
+
+    private Long resolverLojaIdCriacao(UsuarioCreateDTO dto) {
+        PerfilUsuario perfilSolicitante = securityContextService.getRequiredPerfil();
+
+        if (perfilSolicitante != PerfilUsuario.GERENTE || dto.getPerfil() != PerfilUsuario.FUNCIONARIO) {
+            return dto.getLojaId();
+        }
+
+        UsuarioAutenticado gerenteAutenticado = securityContextService.getRequiredPrincipal();
+        Long lojaDoGerente = gerenteAutenticado.getLojaId();
+
+        if (lojaDoGerente == null) {
+            throw new AccessDeniedException("Gerente sem loja vinculada não pode criar funcionário");
+        }
+
+        return lojaDoGerente;
     }
 
 

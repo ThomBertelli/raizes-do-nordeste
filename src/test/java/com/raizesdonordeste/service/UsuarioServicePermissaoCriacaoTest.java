@@ -2,6 +2,7 @@ package com.raizesdonordeste.service;
 
 import com.raizesdonordeste.api.dto.usuario.UsuarioCreateDTO;
 import com.raizesdonordeste.api.dto.usuario.UsuarioResponseDTO;
+import com.raizesdonordeste.config.UsuarioAutenticado;
 import com.raizesdonordeste.domain.enums.PerfilUsuario;
 import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.model.Usuario;
@@ -21,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
@@ -110,6 +112,53 @@ class UsuarioServicePermissaoCriacaoTest {
         assertThat(resposta.getPerfil()).isEqualTo(PerfilUsuario.FUNCIONARIO);
         assertThat(resposta.getEmail()).isEqualTo("gerente-cria-funcionario@mail.com");
         verify(usuarioRepository).save(any(Usuario.class));
+    }
+
+    @Test
+    @DisplayName("GERENTE cria FUNCIONARIO usando automaticamente a própria loja")
+    void gerenteCriaFuncionarioUsandoAutomaticamenteAPropriaLoja() {
+        autenticarComo(PerfilUsuario.GERENTE);
+        configurarCriacaoBemSucedida();
+
+        UsuarioCreateDTO dto = new UsuarioCreateDTO(
+                "Funcionario Outra Loja",
+                "funcionario-outra-loja@mail.com",
+                "Senha@123",
+                PerfilUsuario.FUNCIONARIO,
+                2L,
+                null
+        );
+
+        UsuarioResponseDTO resposta = usuarioService.criar(dto);
+
+        assertThat(resposta).isNotNull();
+        assertThat(resposta.getPerfil()).isEqualTo(PerfilUsuario.FUNCIONARIO);
+        assertThat(resposta.getLojaId()).isEqualTo(1L);
+        verify(lojaRepository).findById(1L);
+        verify(lojaRepository, never()).findById(2L);
+        verify(usuarioRepository).save(any(Usuario.class));
+    }
+
+    @Test
+    @DisplayName("GERENTE cria FUNCIONARIO mesmo sem lojaId no payload")
+    void gerenteCriaFuncionarioMesmoSemLojaIdNoPayload() {
+        autenticarComo(PerfilUsuario.GERENTE);
+        configurarCriacaoBemSucedida();
+
+        UsuarioCreateDTO dto = new UsuarioCreateDTO(
+                "Funcionario Sem Loja No Payload",
+                "funcionario-sem-loja@mail.com",
+                "Senha@123",
+                PerfilUsuario.FUNCIONARIO,
+                null,
+                null
+        );
+
+        UsuarioResponseDTO resposta = usuarioService.criar(dto);
+
+        assertThat(resposta).isNotNull();
+        assertThat(resposta.getLojaId()).isEqualTo(1L);
+        verify(lojaRepository).findById(1L);
     }
 
     @ParameterizedTest
@@ -273,6 +322,17 @@ class UsuarioServicePermissaoCriacaoTest {
                 new UsernamePasswordAuthenticationToken("tester", "senha", List.of(() -> "ROLE_" + perfil.name()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
         when(securityContextService.getRequiredPerfil()).thenReturn(perfil);
+        Long lojaId = (perfil == PerfilUsuario.GERENTE || perfil == PerfilUsuario.FUNCIONARIO) ? 1L : null;
+        UsuarioAutenticado principal = new UsuarioAutenticado(
+                99L,
+                lojaId,
+                perfil,
+                "tester@mail.com",
+                "senha",
+                true,
+                List.of(new SimpleGrantedAuthority("ROLE_" + perfil.name()))
+        );
+        lenient().when(securityContextService.getRequiredPrincipal()).thenReturn(principal);
         lenient().when(securityContextService.getActorIdOrNull()).thenReturn(null);
         lenient().when(securityContextService.getActorPerfilOrNull()).thenReturn(perfil);
     }

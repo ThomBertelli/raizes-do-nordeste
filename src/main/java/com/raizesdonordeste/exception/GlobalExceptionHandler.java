@@ -101,6 +101,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDTO);
     }
 
+    @ExceptionHandler(RegraNegocioException.class)
+    public ResponseEntity<ErrorResponseDTO> handleRegraNegocio(RegraNegocioException ex, HttpServletRequest request) {
+        log.warn("Regra de negocio violada em {}: {}", resumoRequest(request), ex.getMessage());
+        ErrorResponseDTO errorResponseDTO = ErrorResponseDTO.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .erro("Regra de negócio")
+                .mensagem(ex.getMessage())
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDTO);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponseDTO> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
         log.warn("Acesso negado em {}: {}", resumoRequest(request), ex.getMessage());

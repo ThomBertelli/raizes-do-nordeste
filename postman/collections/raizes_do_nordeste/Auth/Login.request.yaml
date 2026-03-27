@@ -7,7 +7,7 @@ body:
   type: json
   content: |
     {
-      "email": "cliente.postman@raizes.com",
-      "senha": "Cliente@2026"
+        "email": "cliente.postman@raizes.com",
+        "senha": "Cliente@2026"
     }
 order: 2100

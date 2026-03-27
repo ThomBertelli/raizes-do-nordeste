@@ -1,6 +1,7 @@
 package com.raizesdonordeste.api.controller;
 
 import com.raizesdonordeste.api.dto.usuario.UsuarioUpdateDTO;
+import com.raizesdonordeste.api.dto.usuario.UsuarioCreateResponseDTO;
 import com.raizesdonordeste.api.dto.usuario.UsuarioCreateDTO;
 import com.raizesdonordeste.api.dto.usuario.UsuarioResponseDTO;
 import com.raizesdonordeste.service.UsuarioService;
@@ -28,9 +29,14 @@ public class UsuarioController {
             summary = "Criar usuario",
             description = "Requer autenticacao. Perfis: ADMIN, GERENTE, GERENCIA_MATRIZ."
     )
-    public ResponseEntity<UsuarioResponseDTO> criar(@Valid @RequestBody UsuarioCreateDTO dto) {
+    public ResponseEntity<UsuarioCreateResponseDTO> criar(@Valid @RequestBody UsuarioCreateDTO dto) {
         UsuarioResponseDTO usuario = usuarioService.criar(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(usuario);
+        UsuarioCreateResponseDTO response = UsuarioCreateResponseDTO.builder()
+                .usuario(usuario.getNome())
+                .mensagem("criado com sucesso")
+                .perfil(usuario.getPerfil())
+                .build();
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PutMapping("/{id}")

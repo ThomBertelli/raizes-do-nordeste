@@ -1,5 +1,9 @@
 $kind: http-request
-description: Publico. GERENCIA_MATRIZ recebe resposta completa; demais perfis e anonimos recebem apenas nome, endereco e ativa.
+name: Listar todas Lojas
+description: Publico. GERENCIA_MATRIZ recebe resposta completa; demais perfis e
+  anonimos recebem apenas nome, endereco e ativa.
 url: "{{base_url}}/api/lojas"
 method: GET
+headers:
+  Authorization: Bearer {{token_gerencia_matriz}}
 order: 4000

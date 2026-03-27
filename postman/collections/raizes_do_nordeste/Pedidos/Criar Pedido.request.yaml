@@ -1,5 +1,7 @@
 $kind: http-request
-description: Pode ser executado por CLIENTE, FUNCIONARIO ou GERENTE. O DTO aceita lojaId, canalPedido, itens e moedasFidelidade.
+name: Criar Pedido
+description: Pode ser executado por CLIENTE, FUNCIONARIO ou GERENTE. O DTO
+  aceita lojaId, canalPedido, itens e moedasFidelidade.
 url: "{{base_url}}/api/pedidos"
 method: POST
 headers:
@@ -13,7 +15,6 @@ body:
       "canalPedido": "APP",
       "itens": [
         { "produtoId": {{produto_id}}, "quantidade": 2 }
-      ],
-      "moedasFidelidade": 0.00
+      ]
     }
 order: 1000

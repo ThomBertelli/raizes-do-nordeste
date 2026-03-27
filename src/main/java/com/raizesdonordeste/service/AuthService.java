@@ -58,6 +58,7 @@ public class AuthService {
                     .nome(usuario.getNome())
                     .email(usuario.getEmail())
                     .perfil(usuario.getPerfil())
+                    .lojaId(usuario.getLoja() != null ? usuario.getLoja().getId() : null)
                     .build();
 
         } catch (AuthenticationException e) {
@@ -94,6 +95,7 @@ public class AuthService {
                 .nome(salvo.getNome())
                 .email(salvo.getEmail())
                 .perfil(salvo.getPerfil())
+                .lojaId(salvo.getLoja() != null ? salvo.getLoja().getId() : null)
                 .build();
     }
 }
