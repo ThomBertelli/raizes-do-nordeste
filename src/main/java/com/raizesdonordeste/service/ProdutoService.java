@@ -2,8 +2,13 @@ package com.raizesdonordeste.service;
 
 import com.raizesdonordeste.api.dto.produto.ProdutoUpdateDTO;
 import com.raizesdonordeste.api.dto.produto.ProdutoCreateDTO;
+import com.raizesdonordeste.api.dto.produto.ProdutoDisponivelLojaResponseDTO;
 import com.raizesdonordeste.api.dto.produto.ProdutoResponseDTO;
+import com.raizesdonordeste.domain.model.Estoque;
+import com.raizesdonordeste.domain.model.Loja;
 import com.raizesdonordeste.domain.model.Produto;
+import com.raizesdonordeste.domain.repository.EstoqueRepository;
+import com.raizesdonordeste.domain.repository.LojaRepository;
 import com.raizesdonordeste.domain.repository.ProdutoRepository;
 import com.raizesdonordeste.exception.RecursoNaoEncontradoException;
 import com.raizesdonordeste.exception.RegraNegocioException;
@@ -22,6 +27,8 @@ import java.math.BigDecimal;
 public class ProdutoService {
 
     private final ProdutoRepository produtoRepository;
+    private final EstoqueRepository estoqueRepository;
+    private final LojaRepository lojaRepository;
     private final SecurityContextService securityContextService;
 
     @Transactional
@@ -104,6 +111,26 @@ public class ProdutoService {
         return produtoRepository.findByPrecoBetween(precoMin, precoMax, pageable).map(this::converterParaDTO);
     }
 
+    @Transactional(readOnly = true)
+    public Page<ProdutoDisponivelLojaResponseDTO> listarDisponiveisPorLoja(Long lojaId, String nome, Pageable pageable) {
+        Loja loja = lojaRepository.findById(lojaId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Loja não encontrada"));
+
+        if (!loja.isAtiva()) {
+            throw new RegraNegocioException("Loja informada não está ativa para pedidos");
+        }
+
+        String nomeNormalizado = nome == null || nome.isBlank() ? null : nome.trim();
+
+        if (nomeNormalizado == null) {
+            return estoqueRepository.findProdutosDisponiveisParaVenda(lojaId, pageable)
+                    .map(this::converterParaDisponivelLojaDTO);
+        }
+
+        return estoqueRepository.findProdutosDisponiveisParaVendaPorNome(lojaId, nomeNormalizado, pageable)
+                .map(this::converterParaDisponivelLojaDTO);
+    }
+
     @Transactional
     public void ativar(Long id) {
         Produto produto = buscarEntidade(id);
@@ -152,6 +179,16 @@ public class ProdutoService {
                 .ativo(produto.isAtivo())
                 .dataCriacao(produto.getDataCriacao())
                 .dataAtualizacao(produto.getDataAtualizacao())
+                .build();
+    }
+
+    private ProdutoDisponivelLojaResponseDTO converterParaDisponivelLojaDTO(Estoque estoque) {
+        Produto produto = estoque.getProduto();
+
+        return ProdutoDisponivelLojaResponseDTO.builder()
+                .nome(produto.getNome())
+                .descricao(produto.getDescricao())
+                .preco(produto.getPreco())
                 .build();
     }
 }

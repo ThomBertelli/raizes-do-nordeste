@@ -3,7 +3,9 @@ package com.raizesdonordeste.api.controller;
 import com.raizesdonordeste.api.dto.loja.LojaUpdateDTO;
 import com.raizesdonordeste.api.dto.loja.LojaCreateDTO;
 import com.raizesdonordeste.api.dto.loja.LojaResponseDTO;
+import com.raizesdonordeste.api.dto.produto.ProdutoDisponivelLojaResponseDTO;
 import com.raizesdonordeste.service.LojaService;
+import com.raizesdonordeste.service.ProdutoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class LojaController {
 
     private final LojaService lojaService;
+    private final ProdutoService produtoService;
 
     @PostMapping
     @Operation(
@@ -82,6 +85,18 @@ public class LojaController {
             @RequestParam String nome,
             @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
         return ResponseEntity.ok(lojaService.buscarPorNome(nome, pageable));
+    }
+
+    @GetMapping("/{id}/produtos-disponiveis")
+    @Operation(
+            summary = "Listar produtos disponíveis para compra em uma loja",
+            description = "Publico. Retorna apenas produtos ativos com estoque maior que zero na loja informada."
+    )
+    public ResponseEntity<Page<ProdutoDisponivelLojaResponseDTO>> listarProdutosDisponiveis(
+            @PathVariable Long id,
+            @RequestParam(required = false) String nome,
+            @PageableDefault(size = 20, sort = "produto.nome") Pageable pageable) {
+        return ResponseEntity.ok(produtoService.listarDisponiveisPorLoja(id, nome, pageable));
     }
 
     @PatchMapping("/{id}/ativar")

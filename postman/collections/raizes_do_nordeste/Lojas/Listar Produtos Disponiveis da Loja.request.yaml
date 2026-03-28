@@ -1,0 +1,7 @@
+$kind: http-request
+url: "{{base_url}}/api/lojas/{{loja_id}}/produtos-disponiveis"
+method: GET
+queryParams:
+  - key: nome
+    value: ""
+order: 5100

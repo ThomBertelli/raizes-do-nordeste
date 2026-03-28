@@ -23,6 +23,60 @@ public interface EstoqueRepository extends JpaRepository<Estoque, Long> {
 
     Page<Estoque> findByLojaId(Long lojaId, Pageable pageable);
 
+    @Query(
+            value = """
+                    SELECT e
+                    FROM Estoque e
+                    JOIN FETCH e.loja l
+                    JOIN FETCH e.produto p
+                    WHERE l.id = :lojaId
+                      AND l.ativa = true
+                      AND p.ativo = true
+                      AND e.quantidade > 0
+                    """,
+            countQuery = """
+                    SELECT COUNT(e)
+                    FROM Estoque e
+                    JOIN e.loja l
+                    JOIN e.produto p
+                    WHERE l.id = :lojaId
+                      AND l.ativa = true
+                      AND p.ativo = true
+                      AND e.quantidade > 0
+                    """
+    )
+    Page<Estoque> findProdutosDisponiveisParaVenda(@Param("lojaId") Long lojaId, Pageable pageable);
+
+    @Query(
+            value = """
+                    SELECT e
+                    FROM Estoque e
+                    JOIN FETCH e.loja l
+                    JOIN FETCH e.produto p
+                    WHERE l.id = :lojaId
+                      AND l.ativa = true
+                      AND p.ativo = true
+                      AND e.quantidade > 0
+                      AND LOWER(p.nome) LIKE LOWER(CONCAT('%', :nome, '%'))
+                    """,
+            countQuery = """
+                    SELECT COUNT(e)
+                    FROM Estoque e
+                    JOIN e.loja l
+                    JOIN e.produto p
+                    WHERE l.id = :lojaId
+                      AND l.ativa = true
+                      AND p.ativo = true
+                      AND e.quantidade > 0
+                      AND LOWER(p.nome) LIKE LOWER(CONCAT('%', :nome, '%'))
+                    """
+    )
+    Page<Estoque> findProdutosDisponiveisParaVendaPorNome(
+            @Param("lojaId") Long lojaId,
+            @Param("nome") String nome,
+            Pageable pageable
+    );
+
     Page<Estoque> findByProdutoId(Long produtoId, Pageable pageable);
 
     Page<Estoque> findByLojaIdAndQuantidadeLessThan(

@@ -9,6 +9,7 @@ API REST para gestão de lojas, produtos, estoque, usuários, pedidos, pagamento
 - CRUD de lojas
 - CRUD de produtos
 - Gestão de estoque por loja
+- Catálogo público de produtos disponíveis por loja
 - Criação e acompanhamento de pedidos
 - Pagamento mock de pedidos
 - Programa de fidelidade com acúmulo, resgate, saldo, extrato e taxa de conversão configurável
@@ -62,6 +63,15 @@ API REST para gestão de lojas, produtos, estoque, usuários, pedidos, pagamento
 - Histórico de movimentações
 - Entrada e saída de estoque
 - Proteções contra estoque negativo e movimentações inválidas
+
+### Catálogo por loja
+
+- O cliente pode consultar produtos disponíveis para compra em uma loja específica
+- A listagem pública considera apenas loja ativa
+- A listagem pública considera apenas produto ativo
+- Produtos sem estoque ou não trabalhados pela loja não aparecem
+- A resposta da vitrine não expõe estoque da loja nem identificadores internos do produto
+- Endpoint público disponível em `/api/lojas/{id}/produtos-disponiveis`
 
 ## Regras de negócio importantes
 
@@ -231,8 +241,12 @@ No Swagger UI:
 Exemplos:
 
 - `GET /api/lojas`
+- `GET /api/lojas/1/produtos-disponiveis`
 - `GET /api/produtos`
 - `GET /api/produtos/ativos`
+
+Esse endpoint de loja é o recomendado para montar a vitrine do cliente sem exibir itens indisponíveis.
+Ele foi pensado para experiência de compra e retorna apenas dados públicos do produto.
 
 ### 4. Crie um pedido usando fidelidade se quiser
 
@@ -277,6 +291,7 @@ Envie esse corpo para `POST /pagamentos/{pedidoId}`.
 - `POST /auth/cadastro`
 - `GET /api/lojas`
 - `GET /api/lojas/{id}`
+- `GET /api/lojas/{id}/produtos-disponiveis`
 - `GET /api/lojas/ativas`
 - `GET /api/lojas/buscar`
 - `GET /api/produtos`
@@ -328,6 +343,8 @@ Envie esse corpo para `POST /pagamentos/{pedidoId}`.
 - CORS está preparado para `http://localhost:3000`, `http://localhost:4200` e `http://localhost:8081`
 - O pagamento é mock, então não existe integração real com gateway externo
 - Se quiser subir a aplicação sem dados de apoio, defina `postman.seed.enabled=false`
+- Para a vitrine do cliente, prefira `GET /api/lojas/{id}/produtos-disponiveis` em vez do catálogo global de produtos
+- Esse endpoint de vitrine filtra por estoque internamente, mas não expõe quantidade disponível nem `produtoId`
 
 ## Próximo passo recomendado
 
