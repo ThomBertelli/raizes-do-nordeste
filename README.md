@@ -131,18 +131,6 @@ Se você usa outra porta, nome de banco, usuário ou senha, tudo bem. Só precis
 
 ### 4. Crie o arquivo `application.properties`
 
-Ponto importante: o arquivo `src/main/resources/application.properties` está no `.gitignore` e pode não vir quando outro dev clonar o repositório.
-
-Por isso, o projeto agora possui um arquivo modelo versionado:
-
-- [`src/main/resources/application-example.properties`](/C:/Users/Thomas/Desktop/Nova pasta/raizes_do_nordeste_api/src/main/resources/application-example.properties)
-
-Faça uma cópia dele com o nome `application.properties` dentro da mesma pasta:
-
-```powershell
-Copy-Item src\main\resources\application-example.properties src\main\resources\application.properties
-```
-
 Depois edite os valores conforme o seu ambiente.
 
 Exemplo mínimo:
